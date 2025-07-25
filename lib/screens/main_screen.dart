@@ -1,0 +1,372 @@
+import 'package:flutter/material.dart';
+import 'onboarding_screen.dart';
+import 'gallery_album_list_screen.dart';
+// import '../l10n/app_localizations.dart'; // kaldırıldı
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'dart:io';
+import '../l10n/app_localizations.dart';
+
+class MainScreen extends StatefulWidget {
+  final void Function(Locale)? onLocaleChanged;
+  final Locale? currentLocale;
+  final bool isDarkTheme;
+  final VoidCallback? onThemeChanged;
+  const MainScreen({super.key, this.onLocaleChanged, this.currentLocale, this.isDarkTheme = false, this.onThemeChanged});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  Locale _currentLocale = const Locale('tr');
+
+  @override
+  void initState() {
+    super.initState();
+    _currentLocale = widget.currentLocale ?? const Locale('tr');
+    _bannerAd = BannerAd(
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-3310704693183811/1265401004'
+          : 'ca-app-pub-3940256099942544/2934735716',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  void _showLanguageDialog() async {
+    final appLoc = AppLocalizations.of(context)!;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white.withOpacity(0.95),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(appLoc.selectLanguage, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                const SizedBox(height: 16),
+                _buildLangOption('tr', '🇹🇷 Türkçe'),
+                const SizedBox(height: 8),
+                _buildLangOption('en', '🇬🇧 English'),
+                const SizedBox(height: 8),
+                _buildLangOption('es', '🇪🇸 Español'),
+                const SizedBox(height: 8),
+                _buildLangOption('ko', '🇰🇷 한국어'),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(appLoc.cancel),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (selected != null && selected != _currentLocale.languageCode) {
+      setState(() {
+        _currentLocale = Locale(selected);
+      });
+      widget.onLocaleChanged?.call(Locale(selected));
+    }
+  }
+
+  Widget _buildLangOption(String code, String label) {
+    final isSelected = _currentLocale.languageCode == code;
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, code),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFB24592).withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected ? Border.all(color: const Color(0xFFB24592), width: 2) : null,
+        ),
+        child: Row(
+          children: [
+            Text(label, style: TextStyle(fontSize: 18, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: Colors.black87)),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check, color: Color(0xFFB24592)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant MainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentLocale != null && widget.currentLocale != _currentLocale) {
+      setState(() {
+        _currentLocale = widget.currentLocale!;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appLoc = AppLocalizations.of(context)!;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          widget.isDarkTheme
+              ? Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0A183D),
+                        Color(0xFF1B2A4D),
+                        Color(0xFF233A5E),
+                        Color(0xFFFFFFFF),
+                      ],
+                    ),
+                  ),
+                )
+              : const _WavyBackground(),
+          // Tema değiştirme switch'i sağ üstte
+          Positioned(
+            top: 32,
+            left: 24,
+            child: Row(
+              children: [
+                Text(
+                  widget.isDarkTheme ? appLoc.darkTheme : appLoc.lightTheme,
+                  style: TextStyle(
+                    color: widget.isDarkTheme ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Switch(
+                  value: widget.isDarkTheme,
+                  onChanged: (val) {
+                    widget.onThemeChanged?.call();
+                  },
+                  activeColor: const Color(0xFF0A183D),
+                  inactiveThumbColor: const Color(0xFF1B2A4D),
+                  inactiveTrackColor: Colors.white70,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 32,
+            right: 24,
+            child: GestureDetector(
+              onTap: _showLanguageDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.language, color: Colors.white, size: 22),
+                    const SizedBox(width: 6),
+                    Text(
+                      _currentLocale.languageCode == 'tr' ? 'TR' : _currentLocale.languageCode == 'es' ? 'ES' : _currentLocale.languageCode == 'ko' ? 'KO' : 'EN',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Uygulama logosu (amblem)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 18),
+                    child: CircleAvatar(
+                      radius: 44,
+                      backgroundColor: Colors.white,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/logom.png',
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    appLoc.gallerySlogan,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    appLoc.mainScreenSubtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4DB6AC),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    ),
+                    icon: const Icon(Icons.info_outline),
+                    label: Text(appLoc.welcome, style: const TextStyle(fontSize: 18)),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE57373),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    ),
+                    icon: const Icon(Icons.photo),
+                    label: Text(appLoc.start, style: const TextStyle(fontSize: 18)),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => GalleryAlbumListScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isBannerAdLoaded && _bannerAd != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: Colors.transparent,
+                alignment: Alignment.center,
+                width: _bannerAd!.size.width.toDouble(),
+                height: _bannerAd!.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Dalgalı arka plan (gallery_cleaner_screen.dart ile aynı)
+class _WavyBackground extends StatelessWidget {
+  const _WavyBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFB24592),
+            Color(0xFFF15F79),
+            Color(0xFF6D327A),
+            Color(0xFF1E3C72),
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _WavesPainter(),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _WavesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    paint.color = const Color(0xFF6D327A).withOpacity(0.18);
+    final path1 = Path();
+    path1.moveTo(0, size.height * 0.2);
+    path1.quadraticBezierTo(size.width * 0.25, size.height * 0.25, size.width * 0.5, size.height * 0.2);
+    path1.quadraticBezierTo(size.width * 0.75, size.height * 0.15, size.width, size.height * 0.2);
+    path1.lineTo(size.width, 0);
+    path1.lineTo(0, 0);
+    path1.close();
+    canvas.drawPath(path1, paint);
+
+    paint.color = const Color(0xFFF15F79).withOpacity(0.12);
+    final path2 = Path();
+    path2.moveTo(0, size.height * 0.7);
+    path2.quadraticBezierTo(size.width * 0.25, size.height * 0.75, size.width * 0.5, size.height * 0.7);
+    path2.quadraticBezierTo(size.width * 0.75, size.height * 0.65, size.width, size.height * 0.7);
+    path2.lineTo(size.width, size.height);
+    path2.lineTo(0, size.height);
+    path2.close();
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+} 

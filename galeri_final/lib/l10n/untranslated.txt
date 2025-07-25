@@ -1,0 +1,18 @@
+{
+  "es": [
+    "allVideosReviewed",
+    "video",
+    "analysisInProgress",
+    "searchHint",
+    "photosTab",
+    "videosTab",
+    "byMonth",
+    "sortByFilesize",
+    "analysisStarting",
+    "analysisStartingTitle",
+    "analysisStartingContent",
+    "analysisInProgressLong",
+    "analysisCompleted",
+    "refreshAnalysis"
+  ]
+}

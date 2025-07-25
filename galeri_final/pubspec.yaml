@@ -1,0 +1,41 @@
+name: galeri
+
+description: Kullanıcının galerisini temizlemesine yardımcı olan çapraz platform mobil uygulama.
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  permission_handler: ^11.3.0
+  photo_manager: ^3.0.0
+  flutter_card_swiper: ^6.0.0
+
+  cupertino_icons: ^1.0.2
+  flutter_localizations:
+    sdk: flutter
+  google_ml_kit: ^0.20.0
+  path_provider: ^2.1.5
+  video_player: ^2.10.0
+  google_mobile_ads: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logom.png"
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/logom.png 
