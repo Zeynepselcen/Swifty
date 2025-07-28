@@ -37,8 +37,15 @@ echo "✅ Versiyonlar güncellendi: $NEW_VERSION"
 echo "🔐 Keystore kontrolü yapılıyor..."
 if [ ! -f "android/app/upload-keystore.jks" ]; then
     echo "❌ Keystore dosyası bulunamadı!"
-    echo "Keystore oluşturuluyor..."
-    keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass swifty123 -keypass swifty123 -dname "CN=Swifty Gallery Cleaner, OU=Development, O=Swifty, L=Istanbul, S=Istanbul, C=TR"
+    echo "Ana dizindeki eski keystore aranıyor..."
+    if [ -f "$HOME/upload-keystore.jks" ]; then
+        echo "✅ Eski keystore bulundu, kopyalanıyor..."
+        cp "$HOME/upload-keystore.jks" android/app/upload-keystore.jks
+    else
+        echo "❌ Eski keystore bulunamadı!"
+        echo "Yeni keystore oluşturuluyor..."
+        keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload -storepass swifty123 -keypass swifty123 -dname "CN=Zeynep Selcen, OU=Development, O=Swifty, L=Istanbul, ST=Istanbul, C=TR"
+    fi
 fi
 
 if [ ! -f "android/key.properties" ]; then
