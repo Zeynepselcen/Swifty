@@ -50,5 +50,9 @@
   "gallerySlogan": "Swifty: Clean Your Gallery",
   "darkTheme": "Dark Theme",
   "lightTheme": "Light Theme",
-  "exitReviewDialog": "You are about to exit without reviewing all {label}. Remaining: {remaining} {label2}. If you go back, you'll have to start over. Do you want to exit?"
+  "exitReviewDialog": "You are about to exit without reviewing all {label}. Remaining: {remaining} {label}. If you go back, you'll have to start over. Do you want to exit?",
+  "duplicateCheckQuestion": "Would you like to check for duplicates in this folder?",
+  "duplicateCheckDescription": "If duplicate photos are found, you can choose which ones to delete.",
+  "yesCheckDuplicates": "Yes, Check",
+  "noDuplicatesFound": "No duplicate photos found in this folder."
 } 

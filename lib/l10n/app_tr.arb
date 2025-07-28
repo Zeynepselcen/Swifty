@@ -50,5 +50,9 @@
   "gallerySlogan": "Galerini Hafiflet",
   "darkTheme": "Koyu Tema",
   "lightTheme": "Açık Tema",
-  "exitReviewDialog": "Tüm {label} incelemeden çıkmak üzeresin. Kalan: {remaining} {label2}. Geri dönersen baştan başlamak zorunda kalırsın. Çıkmak istiyor musun?"
+  "exitReviewDialog": "Tüm {label} incelemeden çıkmak üzeresin. Kalan: {remaining} {label}. Geri dönersen baştan başlamak zorunda kalırsın. Çıkmak istiyor musun?",
+  "duplicateCheckQuestion": "Bu klasörde duplicate kontrolü yapmak ister misiniz?",
+  "duplicateCheckDescription": "Duplicate fotoğraflar tespit edilirse, hangilerini silmek istediğinizi seçebilirsiniz.",
+  "yesCheckDuplicates": "Evet, Kontrol Et",
+  "noDuplicatesFound": "Bu klasörde duplicate fotoğraf bulunamadı."
 } 

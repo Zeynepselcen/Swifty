@@ -46,6 +46,10 @@
   "gallerySlogan": "Aligera tu galería de fotos",
   "darkTheme": "Tema Oscuro",
   "lightTheme": "Tema Claro",
-  "exitReviewDialog": "Estás a punto de salir sin revisar todas las {label}. Restantes: {remaining} {label2}. Si regresas, tendrás que empezar de nuevo. ¿Quieres salir?",
-  "cancelSimpleDesc": "Aún no has revisado todas las fotos. ¿Quieres salir?"
+  "exitReviewDialog": "Estás a punto de salir sin revisar todas las {label}. Restantes: {remaining} {label}. Si regresas, tendrás que empezar de nuevo. ¿Quieres salir?",
+  "cancelSimpleDesc": "Aún no has revisado todas las fotos. ¿Quieres salir?",
+  "duplicateCheckQuestion": "¿Te gustaría verificar duplicados en esta carpeta?",
+  "duplicateCheckDescription": "Si se encuentran fotos duplicadas, puedes elegir cuáles eliminar.",
+  "yesCheckDuplicates": "Sí, Verificar",
+  "noDuplicatesFound": "No se encontraron fotos duplicadas en esta carpeta."
 } 

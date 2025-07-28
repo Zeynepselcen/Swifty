@@ -170,7 +170,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lightTheme => '라이트 테마';
 
   @override
-  String exitReviewDialog(Object label, Object label2, Object remaining) {
-    return '모든 $label을(를) 확인하지 않고 나가려고 합니다. 남은: $remaining $label2. 돌아가면 처음부터 다시 시작해야 합니다. 나가시겠습니까?';
+  String exitReviewDialog(Object label, Object remaining) {
+    return '모든 $label을(를) 확인하지 않고 나가려고 합니다. 남은: $remaining $label. 돌아가면 처음부터 다시 시작해야 합니다. 나가시겠습니까?';
   }
+
+  @override
+  String get duplicateCheckQuestion => '이 폴더에서 중복을 확인하시겠습니까?';
+
+  @override
+  String get duplicateCheckDescription => '중복 사진이 발견되면 삭제할 사진을 선택할 수 있습니다.';
+
+  @override
+  String get yesCheckDuplicates => '예, 확인';
+
+  @override
+  String get noDuplicatesFound => '이 폴더에서 중복 사진을 찾을 수 없습니다.';
 }

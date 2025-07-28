@@ -411,8 +411,32 @@ abstract class AppLocalizations {
   /// No description provided for @exitReviewDialog.
   ///
   /// In en, this message translates to:
-  /// **'You are about to exit without reviewing all {label}. Remaining: {remaining} {label2}. If you go back, you\'ll have to start over. Do you want to exit?'**
-  String exitReviewDialog(Object label, Object label2, Object remaining);
+  /// **'You are about to exit without reviewing all {label}. Remaining: {remaining} {label}. If you go back, you\'ll have to start over. Do you want to exit?'**
+  String exitReviewDialog(Object label, Object remaining);
+
+  /// No description provided for @duplicateCheckQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to check for duplicates in this folder?'**
+  String get duplicateCheckQuestion;
+
+  /// No description provided for @duplicateCheckDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'If duplicate photos are found, you can choose which ones to delete.'**
+  String get duplicateCheckDescription;
+
+  /// No description provided for @yesCheckDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, Check'**
+  String get yesCheckDuplicates;
+
+  /// No description provided for @noDuplicatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicate photos found in this folder.'**
+  String get noDuplicatesFound;
 }
 
 class _AppLocalizationsDelegate

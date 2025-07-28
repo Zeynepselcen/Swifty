@@ -23,7 +23,7 @@ class GalleryCleanerScreen extends StatefulWidget {
   State<GalleryCleanerScreen> createState() => _GalleryCleanerScreenState();
 }
 
-class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
+class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with WidgetsBindingObserver {
   List<PhotoItem> photos = [];
   int currentIndex = 0;
   bool isLoading = true;
@@ -37,6 +37,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.photos != null) {
       photos = List<PhotoItem>.from(widget.photos!);
       isLoading = false;
@@ -47,44 +48,49 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (final c in _videoControllers.values) {
       c.dispose();
     }
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _checkAndReloadGallery();
+    }
+  }
+
+  Future<void> _checkAndReloadGallery() async {
+    // Eğer izin verilmişse ve fotoğraflar boşsa veya izin yeni verilmişse tekrar yükle
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      if (!_galleryPermissionGranted || photos.isEmpty) {
+        await GalleryPermissionHelper.setPermissionGranted(true);
+        setState(() {
+          _galleryPermissionGranted = true;
+          _permissionDenied = false;
+          isLoading = true;
+        });
+        List<PhotoItem> loadedPhotos;
+        if (widget.albumId != null) {
+          loadedPhotos = await GalleryService.loadPhotosFromAlbum(widget.albumId!);
+        } else {
+          loadedPhotos = await GalleryService.loadPhotos();
+        }
+        loadedPhotos.shuffle();
+        setState(() {
+          photos = loadedPhotos;
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _initGallery() async {
-    // --- Galeri İzin Kontrolü için eklenen kod başlangıcı ---
-    bool alreadyGranted = await GalleryPermissionHelper.isPermissionGranted();
-    if (alreadyGranted) {
-      setState(() {
-        _galleryPermissionGranted = true;
-        _permissionDenied = false;
-        isLoading = false;
-      });
-      List<PhotoItem> loadedPhotos;
-      if (widget.albumId != null) {
-        loadedPhotos = await GalleryService.loadPhotosFromAlbum(widget.albumId!);
-      } else {
-        loadedPhotos = await GalleryService.loadPhotos();
-      }
-      loadedPhotos.shuffle();
-      setState(() {
-        photos = loadedPhotos;
-        isLoading = false;
-      });
-      return;
-    }
-    // --- Galeri İzin Kontrolü için eklenen kod sonu ---
-    // --- Tüm Dosya Yönetimi İzni için eklenen kod başlangıcı ---
-    if (Platform.isAndroid && (await _getAndroidSdkInt()) >= 30) {
-      if (!await Permission.manageExternalStorage.isGranted) {
-        _showManageAllFilesDialog();
-        return;
-      }
-    }
-    // --- Tüm Dosya Yönetimi İzni için eklenen kod sonu ---
-    // Toplu izin iste
+    // 1. Önce izin durumunu kontrol et
     final permission = await PhotoManager.requestPermissionExtend();
     if (!permission.isAuth) {
       setState(() {
@@ -98,10 +104,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
     setState(() {
       _galleryPermissionGranted = true;
       _permissionDenied = false;
+      isLoading = true;
     });
-    // --- Galeri İzin Kontrolü için eklenen kod başlangıcı ---
     await GalleryPermissionHelper.setPermissionGranted(true);
-    // --- Galeri İzin Kontrolü için eklenen kod sonu ---
+    // 2. Galeri içeriğini yükle
     List<PhotoItem> loadedPhotos;
     if (widget.albumId != null) {
       loadedPhotos = await GalleryService.loadPhotosFromAlbum(widget.albumId!);
@@ -113,6 +119,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
       photos = loadedPhotos;
       isLoading = false;
     });
+    // 3. Eğer galeri boşsa özel mesaj göster
+    if (loadedPhotos.isEmpty) {
+      _showEmptyGalleryDialog();
+    }
   }
 
   Future<bool> _ensureGalleryPermission() async {
@@ -143,6 +153,22 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmptyGalleryDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Galeri Boş'),
+        content: Text('Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Tamam'),
           ),
         ],
       ),
@@ -588,7 +614,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(appLoc?.cancel ?? 'Vazgeç'),
-          content: Text(appLoc?.exitReviewDialog(remaining, label, label2) ?? ''),
+          content: Text(appLoc?.exitReviewDialog(label, remaining) ?? ''),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -687,7 +713,7 @@ class _WavesPainter extends CustomPainter {
 // --- Tüm Dosya Yönetimi İzni için eklenen kod başlangıcı ---
 Future<int> _getAndroidSdkInt() async {
   try {
-    final methodChannel = const MethodChannel('com.example.galeri/device_info');
+    final methodChannel = const MethodChannel('com.swifty.gallerycleaner/device_info');
     final int sdkInt = await methodChannel.invokeMethod('getSdkInt');
     return sdkInt;
   } catch (_) {

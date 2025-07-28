@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'onboarding_screen.dart';
 import 'gallery_album_list_screen.dart';
 // import '../l10n/app_localizations.dart'; // kaldırıldı
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import 'dart:io';
 import '../l10n/app_localizations.dart';
 
@@ -18,31 +18,12 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
   Locale _currentLocale = const Locale('tr');
 
   @override
   void initState() {
     super.initState();
     _currentLocale = widget.currentLocale ?? const Locale('tr');
-    _bannerAd = BannerAd(
-      adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-3310704693183811/1265401004'
-          : 'ca-app-pub-3940256099942544/2934735716',
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          setState(() {
-            _isBannerAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-        },
-      ),
-    )..load();
   }
 
   void _showLanguageDialog() async {
@@ -124,7 +105,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -296,19 +276,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           ),
-          if (_isBannerAdLoaded && _bannerAd != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                color: Colors.transparent,
-                alignment: Alignment.center,
-                width: _bannerAd!.size.width.toDouble(),
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-            ),
-          ),
+
         ],
       ),
     );

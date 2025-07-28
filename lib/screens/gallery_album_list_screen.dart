@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:crypto/crypto.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import 'video_player_screen.dart';
 
 // Albüm sıralama türleri için enum
@@ -31,10 +31,15 @@ class GalleryAlbumListScreen extends StatefulWidget {
   _GalleryAlbumListScreenState createState() => _GalleryAlbumListScreenState();
 }
 
-class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
+class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with WidgetsBindingObserver {
   // Albüm ve fotoğraf listeleri
   List<_AlbumWithCount> _albums = [];
   bool _loading = true;
+  // Yükleme durumu kontrolü için flag'ler
+  bool _isLoadingAlbums = false;
+  bool _hasInitialized = false;
+  bool _isPhotoDataLoaded = false;
+  bool _isVideoDataLoaded = false;
   AlbumSortType _sortType = AlbumSortType.size;
   late String _selectedLanguage;
   List<PhotoItem> _allPhotos = [];
@@ -434,95 +439,103 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedLanguage = widget.currentLocale?.languageCode ?? 'tr';
     _currentLocale = widget.currentLocale ?? const Locale('tr');
     _initializeApp();
-    _fetchAlbums();
-    _fetchAllPhotos();
-    // _loadRewardedAd(); // Reklam yükleme kaldırıldı
   }
 
-  // RewardedAd ile ilgili kodları yorum satırına al
-  /*
-  void _loadRewardedAd() {
-    RewardedAd.load(
-      adUnitId: 'ca-app-pub-3310704693183811/5492119308', // Gerçek ödüllü reklam birimi ID
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          setState(() {
-            _rewardedAd = ad;
-            _rewardedAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (error) {
-          setState(() {
-            _rewardedAdLoaded = false;
-          });
-        },
-      ),
-    );
-  }
 
-  void _showRewardedAdAndStartAnalysis() {
-    if (_rewardedAdLoaded && _rewardedAd != null) {
-      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
-          _loadRewardedAd();
-          if (!_analysisStarted) {
-            _startAnalysis();
-          }
-        },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          ad.dispose();
-          _loadRewardedAd();
-          if (!_analysisStarted) {
-            _startAnalysis();
-          }
-        },
-      );
-      _rewardedAd!.show(
-        onUserEarnedReward: (ad, reward) {
-          setState(() {
-            _adWatched = true;
-          });
-          if (!_analysisStarted) {
-            _startAnalysis();
-          }
-        },
-      );
-    } else {
-      // Reklam yüklenmediyse analiz yine de başlasın
-      _startAnalysis();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Sadece eğer hiç yükleme yapılmamışsa yükle
+      if (!_hasInitialized && !_isLoadingAlbums) {
+        print('DEBUG: App resumed, ilk yükleme başlatılıyor');
+        _initializeApp();
+      } else {
+        print('DEBUG: App resumed, zaten yüklü veya yükleme devam ediyor, atlanıyor');
+      }
     }
   }
-  */
 
-  Future<void> _initializeApp() async {
-    // Android özelliklerini başlat
-    await GalleryService.initializeAndroidFeatures();
-    // Albüm ve fotoğraf listelerini hemen yükle
-    _fetchAlbums();
-    _fetchAllPhotos();
-    // Analiz işlemini arka planda başlat
-    Future.microtask(() => _labelAllPhotos());
+  Future<void> _checkAndReloadAlbums() async {
+    // Eğer zaten yükleme yapılıyorsa bekle
+    if (_isLoadingAlbums) {
+      print('DEBUG: Zaten yükleme yapılıyor, bekle...');
+      return;
+    }
+    
+    // Eğer veriler zaten yüklüyse tekrar yükleme
+    bool isCurrentDataLoaded = _isVideoMode ? _isVideoDataLoaded : _isPhotoDataLoaded;
+    if (isCurrentDataLoaded && _albums.isNotEmpty) {
+      print('DEBUG: ${_isVideoMode ? "Video" : "Fotoğraf"} verileri zaten yüklü, yükleme atlanıyor');
+      return;
+    }
+    
+    print('DEBUG: _checkAndReloadAlbums başladı');
+    // İzin kontrolü yap ve albümleri yükle
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      await _loadAllData();
+    }
+    print('DEBUG: _checkAndReloadAlbums bitti');
   }
 
-  Map<String, int> _albumSizes = {};
-  Future<void> _fetchAlbums() async {
-    setState(() { _loading = true; });
+  Future<void> _loadAllData() async {
+    if (_isLoadingAlbums) {
+      print('DEBUG: _loadAllData - Zaten yükleme yapılıyor, çık');
+      return;
+    }
+    
+    print('DEBUG: _loadAllData başladı');
+    setState(() { 
+      _loading = true; 
+      _isLoadingAlbums = true; 
+    });
+    
+    try {
+      // Albümleri ve fotoğrafları paralel olarak yükle
+      await Future.wait([
+        _fetchAlbumsInternal(),
+        _fetchAllPhotosInternal(),
+      ]);
+      
+      // Yükleme tamamlandı olarak işaretle
+      if (_isVideoMode) {
+        _isVideoDataLoaded = true;
+      } else {
+        _isPhotoDataLoaded = true;
+      }
+      _hasInitialized = true;
+      
+    } finally {
+      setState(() { 
+        _loading = false; 
+        _isLoadingAlbums = false; 
+      });
+    }
+    print('DEBUG: _loadAllData bitti');
+  }
+
+  Future<void> _fetchAlbumsInternal() async {
+    print('DEBUG: _fetchAlbumsInternal başladı - Video modu: $_isVideoMode');
     final permission = await PhotoManager.requestPermissionExtend();
     if (!permission.isAuth) {
-      setState(() { _loading = false; });
       _showPermissionDeniedDialog();
       return;
     }
-    final albums = await PhotoManager.getAssetPathList(type: _isVideoMode ? RequestType.video : RequestType.image);
+    
+    final requestType = _isVideoMode ? RequestType.video : RequestType.image;
+    print('DEBUG: Albüm türü isteniyor: $requestType');
+    final albums = await PhotoManager.getAssetPathList(type: requestType);
     final List<_AlbumWithCount> albumList = [];
     final Map<String, int> albumSizes = {};
     bool needSizes = _sortType == AlbumSortType.filesize;
     Map<String, dynamic> cache = needSizes ? await GalleryService.loadAnalysisCache() : {};
+    
     for (final album in albums) {
       final count = await album.assetCountAsync;
       if (count == 0) continue; // Skip empty albums
@@ -540,43 +553,20 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
       }
       albumList.add(_AlbumWithCount(album: album, count: count, latestDate: latestDate));
     }
+    
     setState(() {
       _albums = albumList;
       _albumSizes = albumSizes;
-      _loading = false;
     });
+    print('DEBUG: _fetchAlbumsInternal bitti - ${albumList.length} albüm yüklendi');
   }
 
-  Future<DateTime?> _getLatestAssetDate(AssetPathEntity album) async {
-    final assets = await album.getAssetListPaged(page: 0, size: 1);
-    if (assets.isNotEmpty) {
-      return assets.first.createDateTime;
-    }
-    return null;
-  }
-
-  List<_AlbumWithCount> get _sortedAlbums {
-    final list = List<_AlbumWithCount>.from(_albums);
-    switch (_sortType) {
-      case AlbumSortType.size:
-        list.sort((a, b) => b.count.compareTo(a.count));
-        break;
-      case AlbumSortType.date:
-        list.sort((a, b) => (b.latestDate ?? DateTime(1970)).compareTo(a.latestDate ?? DateTime(1970)));
-        break;
-      case AlbumSortType.name:
-        list.sort((a, b) => a.album.name.toLowerCase().compareTo(b.album.name.toLowerCase()));
-        break;
-      case AlbumSortType.filesize:
-        list.sort((a, b) => (_albumSizes[b.album.id] ?? 0).compareTo(_albumSizes[a.album.id] ?? 0));
-        break;
-    }
-    return list;
-  }
-
-  Future<void> _fetchAllPhotos() async {
+  Future<void> _fetchAllPhotosInternal() async {
+    print('DEBUG: _fetchAllPhotosInternal başladı - Video modu: $_isVideoMode');
     setState(() { _loadingPhotos = true; });
+    
     if (_isVideoMode) {
+      print('DEBUG: Video yükleniyor...');
       final videos = await GalleryService.loadVideos();
       _allPhotos = videos;
       _photosByMonth = {};
@@ -584,16 +574,21 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
         final key = DateFormat('yyyy-MM').format(video.date);
         _photosByMonth.putIfAbsent(key, () => []).add(video);
       }
+      print('DEBUG: ${videos.length} video yüklendi');
     } else {
-    final photos = await GalleryService.loadPhotos();
-    _allPhotos = photos;
-    _photosByMonth = {};
-    for (final photo in photos) {
-      final key = DateFormat('yyyy-MM').format(photo.date);
-      _photosByMonth.putIfAbsent(key, () => []).add(photo);
+      print('DEBUG: Fotoğraf yükleniyor...');
+      final photos = await GalleryService.loadPhotos();
+      _allPhotos = photos;
+      _photosByMonth = {};
+      for (final photo in photos) {
+        final key = DateFormat('yyyy-MM').format(photo.date);
+        _photosByMonth.putIfAbsent(key, () => []).add(photo);
       }
+      print('DEBUG: ${photos.length} fotoğraf yüklendi');
     }
+    
     setState(() { _loadingPhotos = false; });
+    print('DEBUG: _fetchAllPhotosInternal bitti - ${_allPhotos.length} medya yüklendi');
   }
 
   Future<Map<String, dynamic>> _analyzePhotosIsolate(Map<String, dynamic> params) async {
@@ -732,43 +727,67 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
     }
   }
 
-  void _openAlbum(_AlbumWithCount album) async {
+    void _openAlbum(_AlbumWithCount album) async {
     if (_isVideoMode && _albums.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.noVideosFound)),
       );
       return;
     }
-    // Albüme tıklanınca önce duplicate kontrolü yap
-    await _checkAndShowDuplicates(context, album.album);
-    // DuplicatePreviewScreen açıldıysa, oradan dönülünce devam et
-    // Duplicate yoksa, doğrudan temizleme ekranına geç
-    final photos = await album.album.getAssetListPaged(page: 0, size: album.count);
-    final photoItems = <PhotoItem>[];
-    for (final asset in photos) {
-      final file = await asset.file;
-      if (file != null) {
-        photoItems.add(PhotoItem(
-          id: asset.id,
-          thumb: await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400)) ?? Uint8List(0),
-          date: asset.createDateTime,
-          hash: '',
-          type: _isVideoMode ? MediaType.video : MediaType.image,
-          path: file.path,
-        ));
-      }
+    
+    // Video modunda ise direkt seçim sayfasına git
+    if (_isVideoMode) {
+      _openAlbumDirectly(album.album);
+      return;
     }
-    if (photoItems.isNotEmpty) {
-    Navigator.of(context).push(
+    
+    // Fotoğraf modunda ise duplicate seçim ekranını aç
+    await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GalleryCleanerScreen(
-            albumId: album.album.id,
-            albumName: album.album.name,
-            photos: photoItems,
-            isVideoMode: _isVideoMode,
+        builder: (_) => DuplicateChoiceScreen(
+          album: album.album,
+          isVideoMode: _isVideoMode,
+          onDeleted: () {
+            // Duplicate silindikten sonra albümleri yenile
+            _fetchAlbums();
+          },
         ),
       ),
     );
+  }
+
+  void _openAlbumDirectly(AssetPathEntity album) async {
+    final assets = await album.getAssetListPaged(page: 0, size: 1000);
+    final photoItems = <PhotoItem>[];
+    
+    for (final asset in assets) {
+      final file = await asset.file;
+      if (file != null) {
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        if (thumb != null) {
+          photoItems.add(PhotoItem(
+            id: asset.id,
+            thumb: thumb,
+            date: asset.createDateTime,
+            hash: '',
+            type: _isVideoMode ? MediaType.video : MediaType.image,
+            path: file.path,
+          ));
+        }
+      }
+    }
+    
+    if (photoItems.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => GalleryCleanerScreen(
+            albumId: album.id,
+            albumName: album.name,
+            photos: photoItems,
+            isVideoMode: _isVideoMode,
+          ),
+        ),
+      );
     }
   }
 
@@ -871,6 +890,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // _rewardedAd?.dispose(); // Reklam dispose kaldırıldı
     super.dispose();
   }
@@ -1130,78 +1150,79 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: Theme.of(context).brightness == Brightness.dark
-                              ? const LinearGradient(
-                                  colors: [Color(0xFF1B2A4D), Color(0xFF233A5E)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                              : null,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? null
-                              : Colors.white.withOpacity(0.13),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.black.withOpacity(0.18)
-                                  : Colors.grey.withOpacity(0.10),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                      // DropdownButton yerine PopupMenuButton ile modern ve özel menü:
+                      PopupMenuButton<AlbumSortType>(
+                        onSelected: (AlbumSortType newValue) {
+                          setState(() {
+                            _sortType = newValue;
+                          });
+                          _fetchAlbums();
+                        },
+                        color: const Color(0xFF1B2A4D), // Koyu arka plan
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: AlbumSortType.size,
+                            child: Text(
+                              appLoc.size, 
+                              style: TextStyle(
+                                color: Colors.white, 
+                                fontWeight: _sortType == AlbumSortType.size ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ],
-                          border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withOpacity(0.10)
-                                : Colors.black.withOpacity(0.08),
                           ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<AlbumSortType>(
-                            value: _sortType,
-                            dropdownColor: _isDarkTheme ? Color(0xFF1B2A4D) : Colors.white.withOpacity(0.85),
-                            icon: Icon(Icons.arrow_drop_down, color: _isDarkTheme ? Colors.white : Colors.white70),
-                            style: TextStyle(color: _isDarkTheme ? Colors.white : Colors.black87, fontSize: 17, fontWeight: FontWeight.bold),
-                            onChanged: (AlbumSortType? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _sortType = newValue;
-                                });
-                                _fetchAlbums();
-                              }
-                            },
-                            items: <DropdownMenuItem<AlbumSortType>>[
-                              DropdownMenuItem(
-                                value: AlbumSortType.size,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                  child: Text(appLoc.size),
+                          PopupMenuItem(
+                            value: AlbumSortType.date,
+                            child: Text(
+                              appLoc.date, 
+                              style: TextStyle(
+                                color: Colors.white, 
+                                fontWeight: _sortType == AlbumSortType.date ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: AlbumSortType.name,
+                            child: Text(
+                              appLoc.name, 
+                              style: TextStyle(
+                                color: Colors.white, 
+                                fontWeight: _sortType == AlbumSortType.name ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _sortType == AlbumSortType.size
+                                    ? appLoc.size
+                                    : _sortType == AlbumSortType.date
+                                        ? appLoc.date
+                                        : appLoc.name,
+                                style: const TextStyle(
+                                  color: Colors.white, 
+                                  fontWeight: FontWeight.w700, 
+                                  fontSize: 18,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
-                              DropdownMenuItem(
-                                value: AlbumSortType.date,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                  child: Text(appLoc.date),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: AlbumSortType.name,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                  child: Text(appLoc.name),
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: AlbumSortType.filesize,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                  child: Text(appLoc.largestSize),
-                                ),
-                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_drop_down, color: Colors.white),
                             ],
                           ),
                         ),
@@ -1224,42 +1245,115 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
                       itemCount: _albums.length,
                       itemBuilder: (context, idx) {
                         final album = _albums[idx];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(16),
+                        return Dismissible(
+                          key: Key(album.album.id),
+                          direction: DismissDirection.endToStart, // Sağdan sola kaydırma
+                          background: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 20),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                            ),
                           ),
-                          child: ListTile(
-                            leading: FutureBuilder<Uint8List?>(
-                               future: album.album.getAssetListPaged(page: 0, size: 1).then((assets) => assets.isNotEmpty ? assets.first.thumbnailDataWithSize(const ThumbnailSize(80, 80)) : null),
-                              builder: (context, snap) {
-                                if (snap.connectionState == ConnectionState.waiting) {
-                                  return const SizedBox(width: 44, height: 44, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
-                                }
-                                if (snap.hasData && snap.data != null && snap.data!.isNotEmpty) {
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.memory(
-                                      snap.data!,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
+                          confirmDismiss: (direction) async {
+                            // Silme onayı
+                            return await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(appLoc.confirmDeletion),
+                                content: Text('${album.album.name} klasörünü silmek istediğinize emin misiniz?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: Text(appLoc.cancel),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
                                     ),
-                                  );
-                                }
-                                return const Icon(Icons.folder, color: Colors.white, size: 36);
-                              },
+                                    child: Text(
+                                      appLoc.deleteAll,
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          onDismissed: (direction) {
+                            // Klasörü listeden kaldır
+                            setState(() {
+                              _albums.removeAt(idx);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${album.album.name} silindi'),
+                                backgroundColor: Colors.red,
+                                action: SnackBarAction(
+                                  label: 'Geri Al',
+                                  textColor: Colors.white,
+                                  onPressed: () {
+                                    // Geri alma işlemi (şimdilik sadece mesaj)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Geri alma özelliği yakında eklenecek'),
+                                        backgroundColor: Colors.blue,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.10),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            title: Text(
-                              album.album.name,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                            child: ListTile(
+                              leading: FutureBuilder<Uint8List?>(
+                                 future: album.album.getAssetListPaged(page: 0, size: 1).then((assets) => assets.isNotEmpty ? assets.first.thumbnailDataWithSize(const ThumbnailSize(80, 80)) : null),
+                                builder: (context, snap) {
+                                  if (snap.connectionState == ConnectionState.waiting) {
+                                    return const SizedBox(width: 44, height: 44, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+                                  }
+                                  if (snap.hasData && snap.data != null && snap.data!.isNotEmpty) {
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.memory(
+                                        snap.data!,
+                                        width: 44,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    );
+                                  }
+                                  return const Icon(Icons.folder, color: Colors.white, size: 36);
+                                },
+                              ),
+                              title: Text(
+                                album.album.name,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              subtitle: Text(
+                                '${album.count} ${appLoc.photos}',
+                                style: const TextStyle(color: Colors.white70, fontSize: 15),
+                              ),
+                              onTap: () => _openAlbum(album),
                             ),
-                            subtitle: Text(
-                              '${album.count} ${appLoc.photos}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 15),
-                            ),
-                            onTap: () => _openAlbum(album),
                           ),
                         );
                       },
@@ -1278,12 +1372,17 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
   Widget _buildToggleButton(bool isPhoto, String text) {
     final selected = _isVideoMode != isPhoto;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isVideoMode = !isPhoto;
-        });
-        _fetchAlbums();
-        _fetchAllPhotos();
+      onTap: () async {
+        final oldMode = _isVideoMode;
+        print('DEBUG: Toggle buton - Mod değişti: ${oldMode ? "Video" : "Fotoğraf"} -> ${!isPhoto ? "Video" : "Fotoğraf"}');
+        // Veri türü değiştiği için her zaman yeni yükleme yap
+        if (!_isLoadingAlbums) {
+          print('DEBUG: Toggle buton - Veri türü değişti, yeni yükleme başlatılıyor');
+          _isVideoMode = !isPhoto; // Mod değişkenini güncelle
+          await _loadAllData(); // Bu fonksiyon zaten setState yapıyor
+        } else {
+          print('DEBUG: Toggle buton - Yükleme devam ediyor, bekle...');
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -1311,6 +1410,68 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> {
         ),
       ),
     );
+  }
+
+  // Eksik değişkenler ve fonksiyonlar
+  Map<String, int> _albumSizes = {};
+
+  Future<void> _initializeApp() async {
+    // Eğer zaten başlatılmışsa tekrar başlatma
+    if (_hasInitialized) {
+      print('DEBUG: _initializeApp - Zaten başlatılmış, atlanıyor');
+      return;
+    }
+    
+    print('DEBUG: _initializeApp başladı');
+    // Android özelliklerini başlat
+    await GalleryService.initializeAndroidFeatures();
+    // İzin kontrolü yap ve albümleri yükle (sadece bir kez)
+    bool isCurrentDataLoaded = _isVideoMode ? _isVideoDataLoaded : _isPhotoDataLoaded;
+    if (!_isLoadingAlbums && !isCurrentDataLoaded) {
+      print('DEBUG: _initializeApp - İlk yükleme başlatılıyor');
+      await _checkAndReloadAlbums();
+    } else {
+      print('DEBUG: _initializeApp - Veriler zaten yüklü veya yükleme devam ediyor');
+    }
+    // Analiz işlemini arka planda başlat
+    Future.microtask(() => _labelAllPhotos());
+    print('DEBUG: _initializeApp bitti');
+  }
+
+  Future<DateTime?> _getLatestAssetDate(AssetPathEntity album) async {
+    final assets = await album.getAssetListPaged(page: 0, size: 1);
+    if (assets.isNotEmpty) {
+      return assets.first.createDateTime;
+    }
+    return null;
+  }
+
+  List<_AlbumWithCount> get _sortedAlbums {
+    final list = List<_AlbumWithCount>.from(_albums);
+    switch (_sortType) {
+      case AlbumSortType.size:
+        list.sort((a, b) => b.count.compareTo(a.count));
+        break;
+      case AlbumSortType.date:
+        list.sort((a, b) => (b.latestDate ?? DateTime(1970)).compareTo(a.latestDate ?? DateTime(1970)));
+        break;
+      case AlbumSortType.name:
+        list.sort((a, b) => a.album.name.toLowerCase().compareTo(b.album.name.toLowerCase()));
+        break;
+      case AlbumSortType.filesize:
+        list.sort((a, b) => (_albumSizes[b.album.id] ?? 0).compareTo(_albumSizes[a.album.id] ?? 0));
+        break;
+    }
+    return list;
+  }
+
+  // Eski fonksiyonları yeni fonksiyonlara yönlendir
+  Future<void> _fetchAlbums() async {
+    await _loadAllData();
+  }
+
+  Future<void> _fetchAllPhotos() async {
+    await _loadAllData();
   }
 } // _GalleryAlbumListScreenState'in kapanışı
 
@@ -1575,6 +1736,267 @@ class DuplicatePreviewScreen extends StatelessWidget {
     );
   }
 } 
+
+class DuplicateChoiceScreen extends StatelessWidget {
+  final AssetPathEntity album;
+  final bool isVideoMode;
+  final VoidCallback onDeleted;
+  
+  const DuplicateChoiceScreen({
+    super.key, 
+    required this.album, 
+    required this.isVideoMode,
+    required this.onDeleted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appLoc = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          isDark
+              ? Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0A183D),
+                        Color(0xFF1B2A4D),
+                        Color(0xFF233A5E),
+                        Color(0xFF233A5E),
+                      ],
+                    ),
+                  ),
+                )
+              : const _WavyBackground(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // İkon
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(60),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      size: 60,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Başlık
+                  Text(
+                    album.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Açıklama
+                  Text(
+                    appLoc.duplicateCheckQuestion,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  Text(
+                    appLoc.duplicateCheckDescription,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  
+                  // Butonlar
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4CAF50),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 4,
+                            shadowColor: Colors.black26,
+                          ),
+                          icon: const Icon(Icons.search, color: Colors.white),
+                          label: Text(
+                            appLoc.yesCheckDuplicates,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onPressed: () async {
+                            // Duplicate kontrolü yap
+                            await _checkAndShowDuplicates(context, album);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: const Icon(Icons.skip_next, color: Colors.white70),
+                          label: Text(
+                            appLoc.skip,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          onPressed: () {
+                            // Doğrudan temizleme ekranına geç
+                            Navigator.of(context).pop();
+                            _openAlbum(context, album);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _checkAndShowDuplicates(BuildContext context, AssetPathEntity album) async {
+    final appLoc = AppLocalizations.of(context)!;
+    
+    // Video modunda ise direkt seçim sayfasına git
+    if (isVideoMode) {
+      Navigator.of(context).pop(); // DuplicateChoiceScreen'i kapat
+      _openAlbum(context, album); // Direkt seçim sayfasına git
+      return;
+    }
+    
+    // Loading göster
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Colors.white,
+        ),
+      ),
+    );
+
+    try {
+      final photos = await album.getAssetListPaged(page: 0, size: 1000);
+      final thumbs = <String, List<AssetEntity>>{};
+      
+      for (final asset in photos) {
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        if (thumb != null) {
+          final hash = md5.convert(thumb).toString();
+          thumbs.putIfAbsent(hash, () => []).add(asset);
+        }
+      }
+      
+      final duplicates = thumbs.values.where((list) => list.length > 1).toList();
+      
+      // Loading'i kapat
+      Navigator.of(context).pop();
+      
+      if (duplicates.isNotEmpty) {
+        // Duplicate bulundu, preview ekranını göster
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DuplicatePreviewScreen(
+              duplicateGroups: duplicates,
+              onDeleted: () {
+                onDeleted();
+                Navigator.of(context).pop();
+              },
+              showSkip: true,
+            ),
+          ),
+        );
+      } else {
+        // Duplicate bulunamadı - direkt seçim sayfasına git
+        Navigator.of(context).pop(); // DuplicateChoiceScreen'i kapat
+        _openAlbum(context, album); // Direkt seçim sayfasına git
+      }
+    } catch (e) {
+      // Loading'i kapat
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Hata oluştu: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openAlbum(BuildContext context, AssetPathEntity album) async {
+    final assets = await album.getAssetListPaged(page: 0, size: 1000);
+    final photoItems = <PhotoItem>[];
+    
+    for (final asset in assets) {
+      final file = await asset.file;
+      if (file != null) {
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        if (thumb != null) {
+          photoItems.add(PhotoItem(
+            id: asset.id,
+            thumb: thumb,
+            date: asset.createDateTime,
+            hash: '',
+            type: MediaType.image, // Bu ekranda sadece fotoğraf modu
+            path: file.path,
+          ));
+        }
+      }
+    }
+    
+    if (photoItems.isNotEmpty) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => GalleryCleanerScreen(
+            albumId: album.id,
+            albumName: album.name,
+            photos: photoItems,
+            isVideoMode: false, // Bu ekranda sadece fotoğraf modu
+          ),
+        ),
+      );
+    }
+  }
+}
 
 // Kaydırma hızını artırmak için özel scroll physics
 class FastScrollPhysics extends ClampingScrollPhysics {

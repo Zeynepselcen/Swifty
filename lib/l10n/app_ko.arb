@@ -46,5 +46,9 @@
   "gallerySlogan": "사진 갤러리를 가볍게 하세요",
   "darkTheme": "다크 테마",
   "lightTheme": "라이트 테마",
-  "exitReviewDialog": "모든 {label}을(를) 확인하지 않고 나가려고 합니다. 남은: {remaining} {label2}. 돌아가면 처음부터 다시 시작해야 합니다. 나가시겠습니까?"
+  "exitReviewDialog": "모든 {label}을(를) 확인하지 않고 나가려고 합니다. 남은: {remaining} {label}. 돌아가면 처음부터 다시 시작해야 합니다. 나가시겠습니까?",
+  "duplicateCheckQuestion": "이 폴더에서 중복을 확인하시겠습니까?",
+  "duplicateCheckDescription": "중복 사진이 발견되면 삭제할 사진을 선택할 수 있습니다.",
+  "yesCheckDuplicates": "예, 확인",
+  "noDuplicatesFound": "이 폴더에서 중복 사진을 찾을 수 없습니다."
 } 

@@ -172,7 +172,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lightTheme => 'Light Theme';
 
   @override
-  String exitReviewDialog(Object label, Object label2, Object remaining) {
-    return 'You are about to exit without reviewing all $label. Remaining: $remaining $label2. If you go back, you\'ll have to start over. Do you want to exit?';
+  String exitReviewDialog(Object label, Object remaining) {
+    return 'You are about to exit without reviewing all $label. Remaining: $remaining $label. If you go back, you\'ll have to start over. Do you want to exit?';
   }
+
+  @override
+  String get duplicateCheckQuestion =>
+      'Would you like to check for duplicates in this folder?';
+
+  @override
+  String get duplicateCheckDescription =>
+      'If duplicate photos are found, you can choose which ones to delete.';
+
+  @override
+  String get yesCheckDuplicates => 'Yes, Check';
+
+  @override
+  String get noDuplicatesFound => 'No duplicate photos found in this folder.';
 }

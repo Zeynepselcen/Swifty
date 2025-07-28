@@ -11,9 +11,7 @@
         android:label="Swifty"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3310704693183811~9622936003"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

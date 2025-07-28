@@ -172,7 +172,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lightTheme => 'Açık Tema';
 
   @override
-  String exitReviewDialog(Object label, Object label2, Object remaining) {
-    return 'Tüm $label incelemeden çıkmak üzeresin. Kalan: $remaining $label2. Geri dönersen baştan başlamak zorunda kalırsın. Çıkmak istiyor musun?';
+  String exitReviewDialog(Object label, Object remaining) {
+    return 'Tüm $label incelemeden çıkmak üzeresin. Kalan: $remaining $label. Geri dönersen baştan başlamak zorunda kalırsın. Çıkmak istiyor musun?';
   }
+
+  @override
+  String get duplicateCheckQuestion =>
+      'Bu klasörde duplicate kontrolü yapmak ister misiniz?';
+
+  @override
+  String get duplicateCheckDescription =>
+      'Duplicate fotoğraflar tespit edilirse, hangilerini silmek istediğinizi seçebilirsiniz.';
+
+  @override
+  String get yesCheckDuplicates => 'Evet, Kontrol Et';
+
+  @override
+  String get noDuplicatesFound => 'Bu klasörde duplicate fotoğraf bulunamadı.';
 }

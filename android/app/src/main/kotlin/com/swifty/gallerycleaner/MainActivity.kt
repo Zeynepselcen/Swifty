@@ -1,4 +1,4 @@
-package com.example.galeri
+package com.swifty.gallerycleaner
 
 import io.flutter.embedding.android.FlutterActivity
 import android.os.Build
@@ -15,7 +15,7 @@ class MainActivity : FlutterActivity() {
         
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.galeri/device_info").setMethodCallHandler {
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.swifty.gallerycleaner/device_info").setMethodCallHandler {
             call, result ->
             if (call.method == "getSdkInt") {
                 result.success(Build.VERSION.SDK_INT)
