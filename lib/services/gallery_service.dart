@@ -7,7 +7,7 @@ import '../models/photo_item.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/gallery_permission_helper.dart'; // HATIRLATMA: Galeri izni durumu için eklendi, sorun olursa kaldır.
+
 // --- Galeri İzin Kontrolü için eklenen kod kaldırıldı, utils klasörüne taşındı. ---
 
 class GalleryService {
@@ -145,7 +145,7 @@ class GalleryService {
     for (final album in albums) {
       final photos = await album.getAssetListPaged(page: 0, size: 1000);
       for (final asset in photos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
         String? path;
         final file = await asset.file;
         if (file != null) path = file.path;
@@ -177,7 +177,7 @@ class GalleryService {
     if (album != null) {
       final photos = await album.getAssetListPaged(page: 0, size: 1000);
       for (final asset in photos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
         String? path;
         final file = await asset.file;
         if (file != null) path = file.path;
@@ -196,10 +196,13 @@ class GalleryService {
     for (final album in albums) {
       final videos = await album.getAssetListPaged(page: 0, size: 1000);
       for (final asset in videos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+        String? path;
+        final file = await asset.file;
+        if (file != null) path = file.path;
         if (thumb != null) {
           final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video));
+          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video, path: path));
         }
         if (limit != null && result.length >= limit) {
           return result;
@@ -225,10 +228,13 @@ class GalleryService {
     if (album != null) {
       final videos = await album.getAssetListPaged(page: 0, size: 1000);
       for (final asset in videos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+        String? path;
+        final file = await asset.file;
+        if (file != null) path = file.path;
         if (thumb != null) {
           final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video));
+          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video, path: path));
         }
       }
     }

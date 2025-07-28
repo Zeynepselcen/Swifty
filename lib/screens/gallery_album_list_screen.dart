@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import '../services/gallery_service.dart';
 import '../models/photo_item.dart';
 import 'package:intl/intl.dart';
-import 'package:crypto/crypto.dart';
+
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:flutter/foundation.dart';
 
@@ -50,13 +50,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   bool _analysisStarted = false;
   bool _analysisCompleted = false;
 
-  // Arama ile ilgili
-  final TextEditingController _searchController = TextEditingController();
-  bool _searching = false;
-  List<PhotoItem> _searchResults = [];
-  String _lastSearch = '';
-  List<String> _lastMatchedLabels = [];
-  List<String> _topLabels = [];
+  // Arama ile ilgili - TAMAMEN KALDIRILDI
+  // final TextEditingController _searchController = TextEditingController();
+  // bool _searching = false;
+  // List<PhotoItem> _searchResults = [];
+  // String _lastSearch = '';
+  // List<String> _lastMatchedLabels = [];
+  // List<String> _topLabels = [];
 
   // Etiket ve etiketleme durumu
   Map<String, List<String>> _photoLabels = {};
@@ -497,11 +497,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     });
     
     try {
-      // Albümleri ve fotoğrafları paralel olarak yükle
-      await Future.wait([
-        _fetchAlbumsInternal(),
-        _fetchAllPhotosInternal(),
-      ]);
+      // Sadece albümleri yükle, fotoğrafları sonra yükle
+      await _fetchAlbumsInternal();
       
       // Yükleme tamamlandı olarak işaretle
       if (_isVideoMode) {
@@ -531,32 +528,36 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final requestType = _isVideoMode ? RequestType.video : RequestType.image;
     print('DEBUG: Albüm türü isteniyor: $requestType');
     final albums = await PhotoManager.getAssetPathList(type: requestType);
+    print('DEBUG: ${albums.length} albüm bulundu');
+    
     final List<_AlbumWithCount> albumList = [];
-    final Map<String, int> albumSizes = {};
-    bool needSizes = _sortType == AlbumSortType.filesize;
-    Map<String, dynamic> cache = needSizes ? await GalleryService.loadAnalysisCache() : {};
+    
+    // Performans optimizasyonu: Sadece sayıları al, thumbnail'leri sonra yükle
+    final futures = <Future<_AlbumWithCount?>>[];
     
     for (final album in albums) {
-      final count = await album.assetCountAsync;
-      if (count == 0) continue; // Skip empty albums
-      final latestDate = await _getLatestAssetDate(album);
-      num totalSize = 0;
-      if (needSizes && count > 0) {
-        final assets = await album.getAssetListPaged(page: 0, size: count);
-        for (final asset in assets) {
-          final cached = cache[asset.id];
-          if (cached != null && cached['size'] != null) {
-            totalSize += cached['size'];
-          }
+      futures.add(() async {
+        try {
+          final count = await album.assetCountAsync;
+          print('DEBUG: Albüm ${album.name} - ${count} ${_isVideoMode ? "video" : "fotoğraf"}');
+          if (count == 0) return null; // Skip empty albums
+          
+          // Sadece tarih bilgisini al, thumbnail'i sonra yükle
+          final latestDate = await _getLatestAssetDate(album);
+          return _AlbumWithCount(album: album, count: count, latestDate: latestDate);
+        } catch (e) {
+          print('DEBUG: Albüm ${album.name} işleme hatası: $e');
+          return null;
         }
-        albumSizes[album.id] = totalSize.toInt();
-      }
-      albumList.add(_AlbumWithCount(album: album, count: count, latestDate: latestDate));
+      }());
     }
+    
+    // Tüm albümleri paralel olarak işle
+    final results = await Future.wait(futures);
+    albumList.addAll(results.where((album) => album != null).cast<_AlbumWithCount>());
     
     setState(() {
       _albums = albumList;
-      _albumSizes = albumSizes;
     });
     print('DEBUG: _fetchAlbumsInternal bitti - ${albumList.length} albüm yüklendi');
   }
@@ -565,30 +566,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     print('DEBUG: _fetchAllPhotosInternal başladı - Video modu: $_isVideoMode');
     setState(() { _loadingPhotos = true; });
     
-    if (_isVideoMode) {
-      print('DEBUG: Video yükleniyor...');
-      final videos = await GalleryService.loadVideos();
-      _allPhotos = videos;
-      _photosByMonth = {};
-      for (final video in videos) {
-        final key = DateFormat('yyyy-MM').format(video.date);
-        _photosByMonth.putIfAbsent(key, () => []).add(video);
-      }
-      print('DEBUG: ${videos.length} video yüklendi');
-    } else {
-      print('DEBUG: Fotoğraf yükleniyor...');
-      final photos = await GalleryService.loadPhotos();
-      _allPhotos = photos;
-      _photosByMonth = {};
-      for (final photo in photos) {
-        final key = DateFormat('yyyy-MM').format(photo.date);
-        _photosByMonth.putIfAbsent(key, () => []).add(photo);
-      }
-      print('DEBUG: ${photos.length} fotoğraf yüklendi');
-    }
+    // Performans optimizasyonu: Sadece albüm listesi için gerekli değil
+    // Bu fonksiyonu kaldır veya sadece gerektiğinde çağır
+    _allPhotos = [];
+    _photosByMonth = {};
     
     setState(() { _loadingPhotos = false; });
-    print('DEBUG: _fetchAllPhotosInternal bitti - ${_allPhotos.length} medya yüklendi');
+    print('DEBUG: _fetchAllPhotosInternal bitti - Performans için kaldırıldı');
   }
 
   Future<Map<String, dynamic>> _analyzePhotosIsolate(Map<String, dynamic> params) async {
@@ -640,6 +624,34 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   }
 
   Future<void> _labelAllPhotos({bool forceRefresh = false}) async {
+    // Analiz kısmı geçici olarak devre dışı bırakıldı - performans sorunu nedeniyle
+    print('ANALİZ DEVRE DIŞI - Performans optimizasyonu için kaldırıldı');
+    
+    // Basit bir progress bar göster
+    setState(() { 
+      _labelingInProgress = true; 
+      _analysisProgress = 0.0; 
+      _analysisLabel = 'Galeri yükleniyor...'; 
+    });
+    
+    // Simüle edilmiş progress
+    for (int i = 0; i <= 100; i += 10) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      setState(() {
+        _analysisProgress = i / 100;
+        _analysisLabel = 'Galeri yükleniyor... ${i}%';
+      });
+    }
+    
+    setState(() {
+      _labelingInProgress = false;
+      _analysisProgress = 1.0;
+      _analysisLabel = 'Galeri hazır';
+      _analysisCompleted = true;
+    });
+    
+    /* 
+    // ESKİ ANALİZ KODU - YORUM SATIRINA ALINDI
     print('ANALİZ BAŞLIYOR');
     try {
       setState(() { _labelingInProgress = true; _analysisProgress = 0.0; _analysisLabel = 'Gallery analysis starting...'; });
@@ -725,94 +737,74 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     } catch (e, s) {
       print('ANALİZDE FATAL HATA: $e\n$s');
     }
+    */
   }
 
     void _openAlbum(_AlbumWithCount album) async {
-    if (_isVideoMode && _albums.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.noVideosFound)),
-      );
-      return;
-    }
+    print('DEBUG: _openAlbum çağrıldı - Video modu: $_isVideoMode, Albüm: ${album.album.name}');
     
-    // Video modunda ise direkt seçim sayfasına git
-    if (_isVideoMode) {
-      _openAlbumDirectly(album.album);
-      return;
-    }
-    
-    // Fotoğraf modunda ise duplicate seçim ekranını aç
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DuplicateChoiceScreen(
-          album: album.album,
-          isVideoMode: _isVideoMode,
-          onDeleted: () {
-            // Duplicate silindikten sonra albümleri yenile
-            _fetchAlbums();
-          },
-        ),
-      ),
-    );
+    // Video modunda albüm kontrolü kaldırıldı - her durumda açmaya çalış
+    _openAlbumDirectly(album.album);
   }
 
   void _openAlbumDirectly(AssetPathEntity album) async {
-    final assets = await album.getAssetListPaged(page: 0, size: 1000);
-    final photoItems = <PhotoItem>[];
+    print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
-    for (final asset in assets) {
-      final file = await asset.file;
-      if (file != null) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
-        if (thumb != null) {
-          photoItems.add(PhotoItem(
-            id: asset.id,
-            thumb: thumb,
-            date: asset.createDateTime,
-            hash: '',
-            type: _isVideoMode ? MediaType.video : MediaType.image,
-            path: file.path,
-          ));
+    try {
+      final assets = await album.getAssetListPaged(page: 0, size: 1000);
+      print('DEBUG: ${assets.length} asset bulundu');
+      
+      final photoItems = <PhotoItem>[];
+      
+      for (final asset in assets) {
+        try {
+          final file = await asset.file;
+          if (file != null) {
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+            if (thumb != null) {
+              photoItems.add(PhotoItem(
+                id: asset.id,
+                thumb: thumb,
+                date: asset.createDateTime,
+                hash: '',
+                type: _isVideoMode ? MediaType.video : MediaType.image,
+                path: file.path,
+              ));
+            }
+          }
+        } catch (e) {
+          print('DEBUG: Asset işleme hatası: $e');
         }
       }
-    }
-    
-    if (photoItems.isNotEmpty) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => GalleryCleanerScreen(
-            albumId: album.id,
-            albumName: album.name,
-            photos: photoItems,
-            isVideoMode: _isVideoMode,
+      
+      print('DEBUG: ${photoItems.length} PhotoItem oluşturuldu');
+      
+      if (photoItems.isNotEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => GalleryCleanerScreen(
+              albumId: album.id,
+              albumName: album.name,
+              photos: photoItems,
+              isVideoMode: _isVideoMode,
+            ),
           ),
-        ),
+        );
+      } else {
+        print('DEBUG: PhotoItem listesi boş');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bu klasörde ${_isVideoMode ? "video" : "fotoğraf"} bulunamadı')),
+        );
+      }
+    } catch (e) {
+      print('DEBUG: _openAlbumDirectly hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Klasör açılırken hata oluştu: $e')),
       );
     }
   }
 
-  Future<void> _checkAndShowDuplicates(BuildContext context, AssetPathEntity album) async {
-    final photos = await album.getAssetListPaged(page: 0, size: 1000);
-    final thumbs = <String, List<AssetEntity>>{};
-    for (final asset in photos) {
-      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
-      if (thumb != null) {
-        final hash = md5.convert(thumb).toString();
-        thumbs.putIfAbsent(hash, () => []).add(asset);
-      }
-    }
-    final duplicates = thumbs.values.where((list) => list.length > 1).toList();
-    if (duplicates.isNotEmpty) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DuplicatePreviewScreen(
-            duplicateGroups: duplicates,
-            onDeleted: _fetchAlbums,
-          ),
-        ),
-      );
-    }
-  }
+
 
   Future<void> _openRandom15Albums(BuildContext context) async {
     final random = Random();
@@ -846,47 +838,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     // NOT: GalleryCleanerScreen'de özel bir foto listesi desteği eklenmeli.
   }
 
-  Future<void> _searchPhotos(String keyword) async {
-    if (_labelingInProgress) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Analysis in progress, please wait.'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-    setState(() { _searching = true; _searchResults = []; });
-    final lowerKeyword = keyword.toLowerCase().trim();
-    final photos = await GalleryService.loadPhotos();
-    List<PhotoItem> matches = [];
-    List<String> matchedLabels = [];
-    for (final photo in photos) {
-      final photoLabels = _photoLabels[photo.id] ?? [];
-      if (photoLabels.any((l) => l == lowerKeyword)) {
-        matches.add(photo);
-        matchedLabels.addAll(photoLabels.where((l) => l == lowerKeyword));
-      }
-    }
-    setState(() {
-      _searchResults = matches;
-      _searching = false;
-      _lastSearch = lowerKeyword;
-      _lastMatchedLabels = matchedLabels.toSet().toList();
-    });
-    if (matches.isNotEmpty) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => GalleryCleanerScreen(
-            albumId: null,
-            albumName: 'Search Results',
-            photos: matches,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No matching photo found.'), backgroundColor: const Color(0xFFB24592)),
-      );
-    }
-  }
+  // Arama fonksiyonu - TAMAMEN KALDIRILDI
+  // Future<void> _searchPhotos(String keyword) async { ... }
 
   @override
   void dispose() {
@@ -983,77 +936,77 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Analiz tamamlandı mesajı
-                if (_analysisCompleted && !_isVideoMode)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 0),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF7CF29C)
-                              : const Color(0xFF0A183D),
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            appLoc.galleryAnalysisCompleted,
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF7CF29C)
-                                  : const Color(0xFF0A183D),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                // Analiz başlatma butonu (sadece fotoğraf modunda ve analiz tamamlanmadıysa)
-                if (!_isVideoMode && (!_analysisStarted || !_analysisCompleted))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 24, right: 24, bottom: 0),
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: _startAnalysis,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                          decoration: BoxDecoration(
-                            gradient: Theme.of(context).brightness == Brightness.dark
-                                ? const LinearGradient(colors: [Color(0xFF1B2A4D), Color(0xFF0A183D)])
-                                : null,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? null
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black.withOpacity(0.08),
-                              width: 2.2,
-                            ),
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)!.analyzeGallery,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Color(0xFF1B2A4D),
-                              fontSize: 17,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                // Analiz tamamlandı mesajı - DEVRE DIŞI
+                // if (_analysisCompleted && !_isVideoMode)
+                //   Padding(
+                //     padding: const EdgeInsets.only(top: 16, left: 24, right: 24, bottom: 0),
+                //     child: Row(
+                //       children: [
+                //         Icon(
+                //           Icons.check_circle,
+                //           color: Theme.of(context).brightness == Brightness.dark
+                //               ? const Color(0xFF7CF29C)
+                //               : const Color(0xFF0A183D),
+                //           size: 22,
+                //         ),
+                //         const SizedBox(width: 8),
+                //         Expanded(
+                //           child: Text(
+                //             appLoc.galleryAnalysisCompleted,
+                //             style: TextStyle(
+                //               color: Theme.of(context).brightness == Brightness.dark
+                //                   ? const Color(0xFF7CF29C)
+                //                   : const Color(0xFF0A183D),
+                //               fontWeight: FontWeight.bold,
+                //               fontSize: 17,
+                //             ),
+                //           ),
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // Analiz başlatma butonu - DEVRE DIŞI
+                // if (!_isVideoMode && (!_analysisStarted || !_analysisCompleted))
+                //   Padding(
+                //     padding: const EdgeInsets.only(top: 8, left: 24, right: 24, bottom: 0),
+                //     child: Center(
+                //       child: GestureDetector(
+                //         onTap: _startAnalysis,
+                //         child: Container(
+                //           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                //           decoration: BoxDecoration(
+                //             gradient: Theme.of(context).brightness == Brightness.dark
+                //                 ? const LinearGradient(colors: [Color(0xFF1B2A4D), Color(0xFF0A183D)])
+                //                 : null,
+                //             color: Theme.of(context).brightness == Brightness.dark
+                //                 ? null
+                //                 : Colors.white,
+                //             borderRadius: BorderRadius.circular(22),
+                //             boxShadow: [
+                //               BoxShadow(
+                //                 color: Colors.black.withOpacity(0.10),
+                //                 blurRadius: 12,
+                //                 offset: const Offset(0, 4),
+                //               ),
+                //             ],
+                //             border: Border.all(
+                //               color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black.withOpacity(0.08),
+                //               width: 2.2,
+                //             ),
+                //           ),
+                //           child: Text(
+                //             AppLocalizations.of(context)!.analyzeGallery,
+                //             style: TextStyle(
+                //               fontWeight: FontWeight.bold,
+                //               color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Color(0xFF1B2A4D),
+                //               fontSize: 17,
+                //               letterSpacing: 0.2,
+                //             ),
+                //           ),
+                //         ),
+                //       ),
+                //     ),
+                //   ),
                 // Photos/Videos toggle
                 Padding(
                   padding: const EdgeInsets.only(top: 24, left: 0, right: 0, bottom: 0),
@@ -1073,78 +1026,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     ),
                   ),
                 ),
-                // Arama çubuğu (sadece analiz tamamlandıysa)
-                if (_analysisCompleted && !_isVideoMode)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              style: const TextStyle(color: Colors.white, fontSize: 18),
-                              decoration: InputDecoration(
-                                hintText: appLoc.searchPhotos,
-                                hintStyle: const TextStyle(color: Colors.white70, fontSize: 18),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                              ),
-                              onSubmitted: (v) => _searchPhotos(v),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.search, color: Colors.white70),
-                            onPressed: () => _searchPhotos(_searchController.text),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                // Etiket chips (sadece analiz tamamlandıysa)
-                if (_analysisCompleted && _topLabels.isNotEmpty && !_isVideoMode)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: _topLabels.map((label) {
-                        final isDark = Theme.of(context).brightness == Brightness.dark;
-                        final appLoc = AppLocalizations.of(context)!;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: GestureDetector(
-                            onTap: () => _searchPhotos(label),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1B2A4D) : Colors.white,
-                                borderRadius: BorderRadius.circular(22),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.18),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                _localizedLabel(label, appLoc),
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : const Color(0xFF1B2A4D),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 17,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                // Arama çubuğu - TAMAMEN KALDIRILDI
+                // Etiket chips - TAMAMEN KALDIRILDI
                 // Sıralama kutusu ve yenile butonu
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
@@ -1156,7 +1039,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                           setState(() {
                             _sortType = newValue;
                           });
-                          _fetchAlbums();
                         },
                         color: const Color(0xFF1B2A4D), // Koyu arka plan
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -1242,9 +1124,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: ListView.builder(
                       physics: const FastScrollPhysics(),
-                      itemCount: _albums.length,
+                      itemCount: _sortedAlbums.length,
                       itemBuilder: (context, idx) {
-                        final album = _albums[idx];
+                        final album = _sortedAlbums[idx];
                         return Dismissible(
                           key: Key(album.album.id),
                           direction: DismissDirection.endToStart, // Sağdan sola kaydırma
@@ -1292,11 +1174,18 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               ),
                             );
                           },
-                          onDismissed: (direction) {
-                            // Klasörü listeden kaldır
-                            setState(() {
-                              _albums.removeAt(idx);
-                            });
+                          onDismissed: (direction) async {
+                            // Klasörü gerçekten sil
+                            try {
+                              await PhotoManager.editor.deleteWithIds([album.album.id]);
+                              print('DEBUG: Klasör silindi: ${album.album.name}');
+                            } catch (e) {
+                              print('DEBUG: Klasör silme hatası: $e');
+                            }
+                            
+                            // Listeyi yeniden yükle
+                            await _loadAllData();
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('${album.album.name} silindi'),
@@ -1324,26 +1213,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: ListTile(
-                              leading: FutureBuilder<Uint8List?>(
-                                 future: album.album.getAssetListPaged(page: 0, size: 1).then((assets) => assets.isNotEmpty ? assets.first.thumbnailDataWithSize(const ThumbnailSize(80, 80)) : null),
-                                builder: (context, snap) {
-                                  if (snap.connectionState == ConnectionState.waiting) {
-                                    return const SizedBox(width: 44, height: 44, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
-                                  }
-                                  if (snap.hasData && snap.data != null && snap.data!.isNotEmpty) {
-                                    return ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.memory(
-                                        snap.data!,
-                                        width: 44,
-                                        height: 44,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    );
-                                  }
-                                  return const Icon(Icons.folder, color: Colors.white, size: 36);
-                                },
-                              ),
+                              leading: _buildAlbumThumbnail(album.album),
                               title: Text(
                                 album.album.name,
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -1368,6 +1238,74 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     );
   }
 
+  // Optimized thumbnail builder with lazy loading
+  Widget _buildAlbumThumbnail(AssetPathEntity album) {
+    return FutureBuilder<Uint8List?>(
+      future: _getAlbumThumbnail(album),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.folder, color: Colors.white, size: 24),
+          );
+        }
+        if (snap.hasData && snap.data != null && snap.data!.isNotEmpty) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              snap.data!,
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+            ),
+          );
+        }
+        return Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.folder, color: Colors.white, size: 24),
+        );
+      },
+    );
+  }
+
+  // Thumbnail cache with lazy loading
+  final Map<String, Future<Uint8List?>> _thumbnailCache = {};
+  final Set<String> _loadingThumbnails = {};
+
+  Future<Uint8List?> _getAlbumThumbnail(AssetPathEntity album) {
+    // Eğer zaten cache'de varsa döndür
+    if (_thumbnailCache.containsKey(album.id)) {
+      return _thumbnailCache[album.id]!;
+    }
+    
+    // Eğer zaten yükleniyorsa bekle
+    if (_loadingThumbnails.contains(album.id)) {
+      return Future.value(null);
+    }
+    
+    // Yeni thumbnail yükle
+    _loadingThumbnails.add(album.id);
+    
+    final future = album.getAssetListPaged(page: 0, size: 1)
+        .then((assets) => assets.isNotEmpty 
+            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(80, 80)) 
+            : null)
+        .whenComplete(() => _loadingThumbnails.remove(album.id));
+    
+    _thumbnailCache[album.id] = future;
+    return future;
+  }
+
   // Photos/Videos toggle butonları
   Widget _buildToggleButton(bool isPhoto, String text) {
     final selected = _isVideoMode != isPhoto;
@@ -1375,10 +1313,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       onTap: () async {
         final oldMode = _isVideoMode;
         print('DEBUG: Toggle buton - Mod değişti: ${oldMode ? "Video" : "Fotoğraf"} -> ${!isPhoto ? "Video" : "Fotoğraf"}');
+        
+        // Mod değişkenini güncelle
+        setState(() {
+          _isVideoMode = !isPhoto;
+        });
+        
         // Veri türü değiştiği için her zaman yeni yükleme yap
         if (!_isLoadingAlbums) {
           print('DEBUG: Toggle buton - Veri türü değişti, yeni yükleme başlatılıyor');
-          _isVideoMode = !isPhoto; // Mod değişkenini güncelle
           await _loadAllData(); // Bu fonksiyon zaten setState yapıyor
         } else {
           print('DEBUG: Toggle buton - Yükleme devam ediyor, bekle...');
@@ -1412,8 +1355,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     );
   }
 
-  // Eksik değişkenler ve fonksiyonlar
-  Map<String, int> _albumSizes = {};
+
 
   Future<void> _initializeApp() async {
     // Eğer zaten başlatılmışsa tekrar başlatma
@@ -1448,6 +1390,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   List<_AlbumWithCount> get _sortedAlbums {
     final list = List<_AlbumWithCount>.from(_albums);
+    
     switch (_sortType) {
       case AlbumSortType.size:
         list.sort((a, b) => b.count.compareTo(a.count));
@@ -1459,7 +1402,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         list.sort((a, b) => a.album.name.toLowerCase().compareTo(b.album.name.toLowerCase()));
         break;
       case AlbumSortType.filesize:
-        list.sort((a, b) => (_albumSizes[b.album.id] ?? 0).compareTo(_albumSizes[a.album.id] ?? 0));
+        // Filesize sorting removed for performance
+        list.sort((a, b) => b.count.compareTo(a.count));
         break;
     }
     return list;
@@ -1539,464 +1483,9 @@ class _WavesPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class DuplicatePreviewScreen extends StatelessWidget {
-  final List<List<AssetEntity>> duplicateGroups;
-  final VoidCallback onDeleted;
-  final bool showSkip;
-  const DuplicatePreviewScreen({super.key, required this.duplicateGroups, required this.onDeleted, this.showSkip = false});
+ 
 
-  @override
-  Widget build(BuildContext context) {
-    final appLoc = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          isDark
-              ? Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0A183D),
-                        Color(0xFF1B2A4D),
-                        Color(0xFF233A5E),
-                        Color(0xFF233A5E),
-                      ],
-                    ),
-                  ),
-                )
-              : const _WavyBackground(),
-          SafeArea(
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 18,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Text(
-                      appLoc.duplicatePhotos,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 80, left: 16, right: 16, bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appLoc.previewOfDuplicatePhotos,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    appLoc.duplicatePreviewInfo,
-                    style: const TextStyle(color: Colors.white54, fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: duplicateGroups.length,
-                      itemBuilder: (context, groupIdx) {
-                        final group = duplicateGroups[groupIdx];
-                        return Card(
-                          color: isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.05),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                for (int i = 0; i < group.length; i++)
-                                  FutureBuilder<Uint8List?>(
-                                    future: group[i].thumbnailDataWithSize(const ThumbnailSize(80, 80)),
-                                    builder: (context, snapshot) {
-                                      if (!snapshot.hasData) {
-                                        return const SizedBox(width: 84, height: 84, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
-                                      }
-                                      return Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: i == 0 ? Colors.green : Colors.red, width: 2),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Image.memory(snapshot.data!, width: 80, height: 80, fit: BoxFit.cover),
-                                      );
-                                    },
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE57373),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 4,
-                              shadowColor: Colors.black26,
-                            ),
-                            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.white),
-                            label: Text(appLoc.deleteAllDuplicates, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                            onPressed: () async {
-                              final shouldDelete = await showDialog<bool>(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (context) => AlertDialog(
-                                  title: Text(appLoc.confirmDeletion),
-                                  content: Text(appLoc.confirmDeleteAllDuplicates),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(false),
-                                      child: Text(appLoc.cancel),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.of(context).pop(true),
-                                      child: Text(appLoc.deleteAll),
-                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE57373)),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (shouldDelete == true) {
-                                final idsToDelete = <String>[];
-                                for (final group in duplicateGroups) {
-                                  idsToDelete.addAll(group.skip(1).map((asset) => asset.id));
-                                }
-                                if (idsToDelete.isNotEmpty) {
-                                  await PhotoManager.editor.deleteWithIds(idsToDelete);
-                                }
-                                onDeleted();
-                                if (showSkip) {
-                                  Navigator.of(context).pop(false);
-                                } else {
-                                  Navigator.of(context).pop();
-                                }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(appLoc.allDuplicatesDeleted)),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        if (showSkip)
-                        TextButton(
-                          onPressed: () {
-                              Navigator.of(context).pop(true);
-                            },
-                            child: Text(
-                              appLoc.skipThisStep,
-                              style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        if (!showSkip)
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                          },
-                          child: Text(
-                              appLoc.skip,
-                            style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-} 
 
-class DuplicateChoiceScreen extends StatelessWidget {
-  final AssetPathEntity album;
-  final bool isVideoMode;
-  final VoidCallback onDeleted;
-  
-  const DuplicateChoiceScreen({
-    super.key, 
-    required this.album, 
-    required this.isVideoMode,
-    required this.onDeleted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final appLoc = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          isDark
-              ? Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0A183D),
-                        Color(0xFF1B2A4D),
-                        Color(0xFF233A5E),
-                        Color(0xFF233A5E),
-                      ],
-                    ),
-                  ),
-                )
-              : const _WavyBackground(),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // İkon
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(60),
-                    ),
-                    child: const Icon(
-                      Icons.photo_library_outlined,
-                      size: 60,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Başlık
-                  Text(
-                    album.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Açıklama
-                  Text(
-                    appLoc.duplicateCheckQuestion,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  Text(
-                    appLoc.duplicateCheckDescription,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 48),
-                  
-                  // Butonlar
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 4,
-                            shadowColor: Colors.black26,
-                          ),
-                          icon: const Icon(Icons.search, color: Colors.white),
-                          label: Text(
-                            appLoc.yesCheckDuplicates,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onPressed: () async {
-                            // Duplicate kontrolü yap
-                            await _checkAndShowDuplicates(context, album);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextButton.icon(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          icon: const Icon(Icons.skip_next, color: Colors.white70),
-                          label: Text(
-                            appLoc.skip,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          onPressed: () {
-                            // Doğrudan temizleme ekranına geç
-                            Navigator.of(context).pop();
-                            _openAlbum(context, album);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _checkAndShowDuplicates(BuildContext context, AssetPathEntity album) async {
-    final appLoc = AppLocalizations.of(context)!;
-    
-    // Video modunda ise direkt seçim sayfasına git
-    if (isVideoMode) {
-      Navigator.of(context).pop(); // DuplicateChoiceScreen'i kapat
-      _openAlbum(context, album); // Direkt seçim sayfasına git
-      return;
-    }
-    
-    // Loading göster
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
-        ),
-      ),
-    );
-
-    try {
-      final photos = await album.getAssetListPaged(page: 0, size: 1000);
-      final thumbs = <String, List<AssetEntity>>{};
-      
-      for (final asset in photos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
-        if (thumb != null) {
-          final hash = md5.convert(thumb).toString();
-          thumbs.putIfAbsent(hash, () => []).add(asset);
-        }
-      }
-      
-      final duplicates = thumbs.values.where((list) => list.length > 1).toList();
-      
-      // Loading'i kapat
-      Navigator.of(context).pop();
-      
-      if (duplicates.isNotEmpty) {
-        // Duplicate bulundu, preview ekranını göster
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DuplicatePreviewScreen(
-              duplicateGroups: duplicates,
-              onDeleted: () {
-                onDeleted();
-                Navigator.of(context).pop();
-              },
-              showSkip: true,
-            ),
-          ),
-        );
-      } else {
-        // Duplicate bulunamadı - direkt seçim sayfasına git
-        Navigator.of(context).pop(); // DuplicateChoiceScreen'i kapat
-        _openAlbum(context, album); // Direkt seçim sayfasına git
-      }
-    } catch (e) {
-      // Loading'i kapat
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Hata oluştu: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _openAlbum(BuildContext context, AssetPathEntity album) async {
-    final assets = await album.getAssetListPaged(page: 0, size: 1000);
-    final photoItems = <PhotoItem>[];
-    
-    for (final asset in assets) {
-      final file = await asset.file;
-      if (file != null) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
-        if (thumb != null) {
-          photoItems.add(PhotoItem(
-            id: asset.id,
-            thumb: thumb,
-            date: asset.createDateTime,
-            hash: '',
-            type: MediaType.image, // Bu ekranda sadece fotoğraf modu
-            path: file.path,
-          ));
-        }
-      }
-    }
-    
-    if (photoItems.isNotEmpty) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => GalleryCleanerScreen(
-            albumId: album.id,
-            albumName: album.name,
-            photos: photoItems,
-            isVideoMode: false, // Bu ekranda sadece fotoğraf modu
-          ),
-        ),
-      );
-    }
-  }
-}
 
 // Kaydırma hızını artırmak için özel scroll physics
 class FastScrollPhysics extends ClampingScrollPhysics {

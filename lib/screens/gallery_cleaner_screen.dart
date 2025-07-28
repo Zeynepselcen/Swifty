@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:photo_manager/photo_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
-import '../utils/gallery_permission_helper.dart';
+
 import 'package:permission_handler/permission_handler.dart'; // HATIRLATMA: Tüm dosya yönetimi izni için eklendi, sorun olursa kaldırabilirsin.
 import 'package:flutter/services.dart'; // Tüm dosya yönetimi izni için eklendi
 
@@ -68,7 +68,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     final permission = await PhotoManager.requestPermissionExtend();
     if (permission.isAuth) {
       if (!_galleryPermissionGranted || photos.isEmpty) {
-        await GalleryPermissionHelper.setPermissionGranted(true);
+        // GalleryPermissionHelper kaldırıldı
         setState(() {
           _galleryPermissionGranted = true;
           _permissionDenied = false;
@@ -106,7 +106,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       _permissionDenied = false;
       isLoading = true;
     });
-    await GalleryPermissionHelper.setPermissionGranted(true);
+    // GalleryPermissionHelper kaldırıldı
     // 2. Galeri içeriğini yükle
     List<PhotoItem> loadedPhotos;
     if (widget.albumId != null) {
