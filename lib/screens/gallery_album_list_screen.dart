@@ -750,42 +750,87 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
-    // Loading dialog göster
+    // Modern loading dialog göster
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFB24592),
+                  Color(0xFFF15F79),
+                  Color(0xFF6D327A),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                '${album.name} yükleniyor...',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Bu işlem biraz zaman alabilir',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 4,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Text(
+                  '${album.name}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Fotoğraflar yükleniyor...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Lütfen bekleyin',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -836,53 +881,66 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     }
   }
 
-  // Ana thread'de asset yükleme (isolate sorunu nedeniyle)
+  // Optimize edilmiş asset yükleme
   Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
     final photoItems = <PhotoItem>[];
     
-    // Pagination ile tüm fotoğrafları al
-    const int pageSize = 100;
+    // Daha büyük sayfa boyutu ve daha az thumbnail boyutu
+    const int pageSize = 200; // 100'den 200'e çıkarıldı
     int currentPage = 0;
     
     while (photoItems.length < totalCount) {
       final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
       if (assets.isEmpty) break;
       
-      // Batch işleme - her 10 asset'te bir UI güncelle
-      for (int i = 0; i < assets.length; i++) {
-        try {
-          final asset = assets[i];
-          final file = await asset.file;
-          if (file != null) {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)); // Daha küçük thumbnail
-            if (thumb != null) {
-              photoItems.add(PhotoItem(
-                id: asset.id,
-                thumb: thumb,
-                date: asset.createDateTime,
-                hash: '',
-                type: _isVideoMode ? MediaType.video : MediaType.image,
-                path: file.path,
-              ));
-            }
-          }
-          
-          // Her 10 asset'te bir kısa bekleme (UI responsive tutmak için)
-          if (i % 10 == 0) {
-            await Future.delayed(const Duration(milliseconds: 10));
-          }
-        } catch (e) {
-          print('DEBUG: Asset işleme hatası: $e');
+      // Paralel işleme - daha hızlı yükleme
+      final futures = <Future<PhotoItem?>>[];
+      
+      for (final asset in assets) {
+        futures.add(_processAsset(asset));
+      }
+      
+      // Tüm asset'leri paralel olarak işle
+      final results = await Future.wait(futures);
+      
+      // Null olmayan sonuçları ekle
+      for (final result in results) {
+        if (result != null) {
+          photoItems.add(result);
         }
       }
       
       currentPage++;
       
       // Güvenlik kontrolü - sonsuz döngüyü önle
-      if (currentPage > 100) break;
+      if (currentPage > 50) break; // 100'den 50'ye düşürüldü
     }
     
     return photoItems;
+  }
+
+  // Tek bir asset'i işle
+  Future<PhotoItem?> _processAsset(AssetEntity asset) async {
+    try {
+      final file = await asset.file;
+      if (file != null) {
+        // Daha küçük thumbnail boyutu - daha hızlı yükleme
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+        if (thumb != null) {
+          return PhotoItem(
+            id: asset.id,
+            thumb: thumb,
+            date: asset.createDateTime,
+            hash: '',
+            type: _isVideoMode ? MediaType.video : MediaType.image,
+            path: file.path,
+          );
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Asset işleme hatası: $e');
+    }
+    return null;
   }
 
   // Albüm listesini yenile
