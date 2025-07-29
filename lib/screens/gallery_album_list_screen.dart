@@ -750,51 +750,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
-    // Basit loading dialog göster
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 16),
-              Text(
-                'Yükleniyor...',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    
     try {
       // Tüm fotoğrafları al (sınırsız)
       final totalCount = await album.assetCountAsync;
       print('DEBUG: Toplam ${totalCount} asset bulundu');
       
-      // Progress güncelleme için callback
-      void updateProgress(int loaded, int total) {
-        if (mounted) {
-          setState(() {
-            // Progress'i güncelle
-          });
-        }
-      }
-      
       // Ana thread'de işle (isolate sorunu nedeniyle)
       final photoItems = await _loadAssetsDirectly(album, totalCount);
-      
-      // Loading dialog'u kapat
-      Navigator.of(context).pop();
       
       print('DEBUG: ${photoItems.length} PhotoItem oluşturuldu');
       
@@ -820,9 +782,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         );
       }
     } catch (e) {
-      // Loading dialog'u kapat
-      Navigator.of(context).pop();
-      
       print('DEBUG: _openAlbumDirectly hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Klasör açılırken hata oluştu: $e')),
