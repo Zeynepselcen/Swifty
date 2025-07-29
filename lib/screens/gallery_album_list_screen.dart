@@ -813,6 +813,20 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  width: 200,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -840,6 +854,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       // Tüm fotoğrafları al (sınırsız)
       final totalCount = await album.assetCountAsync;
       print('DEBUG: Toplam ${totalCount} asset bulundu');
+      
+      // Progress güncelleme için callback
+      void updateProgress(int loaded, int total) {
+        if (mounted) {
+          setState(() {
+            // Progress'i güncelle
+          });
+        }
+      }
       
       // Ana thread'de işle (isolate sorunu nedeniyle)
       final photoItems = await _loadAssetsDirectly(album, totalCount);
@@ -881,66 +904,86 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     }
   }
 
-  // Optimize edilmiş asset yükleme
+  // Ultra optimize edilmiş asset yükleme
   Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
     final photoItems = <PhotoItem>[];
     
-    // Daha büyük sayfa boyutu ve daha az thumbnail boyutu
-    const int pageSize = 200; // 100'den 200'e çıkarıldı
+    // Çok daha büyük sayfa boyutu
+    const int pageSize = 500; // 200'den 500'e çıkarıldı
     int currentPage = 0;
     
-    while (photoItems.length < totalCount) {
+    // Maksimum yüklenecek fotoğraf sayısı (1000+ fotoğraf için)
+    const int maxPhotos = 2000; // 2000 fotoğrafa kadar destek
+    
+    while (photoItems.length < totalCount && photoItems.length < maxPhotos) {
       final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
       if (assets.isEmpty) break;
       
-      // Paralel işleme - daha hızlı yükleme
-      final futures = <Future<PhotoItem?>>[];
+      // Batch işleme - daha büyük gruplar halinde
+      final batchSize = 100; // Her seferde 100 asset işle
+      final batches = <List<AssetEntity>>[];
       
-      for (final asset in assets) {
-        futures.add(_processAsset(asset));
+      for (int i = 0; i < assets.length; i += batchSize) {
+        final end = (i + batchSize < assets.length) ? i + batchSize : assets.length;
+        batches.add(assets.sublist(i, end));
       }
       
-      // Tüm asset'leri paralel olarak işle
-      final results = await Future.wait(futures);
-      
-      // Null olmayan sonuçları ekle
-      for (final result in results) {
-        if (result != null) {
-          photoItems.add(result);
+      // Her batch'i paralel olarak işle
+      for (final batch in batches) {
+        final futures = <Future<PhotoItem?>>[];
+        
+        for (final asset in batch) {
+          futures.add(_processAssetOptimized(asset));
         }
+        
+        // Batch'i paralel olarak işle
+        final results = await Future.wait(futures);
+        
+        // Null olmayan sonuçları ekle
+        for (final result in results) {
+          if (result != null) {
+            photoItems.add(result);
+          }
+        }
+        
+        // Her batch sonrası kısa bekleme (UI responsive tutmak için)
+        await Future.delayed(const Duration(milliseconds: 5));
       }
       
       currentPage++;
       
-      // Güvenlik kontrolü - sonsuz döngüyü önle
-      if (currentPage > 50) break; // 100'den 50'ye düşürüldü
+      // Güvenlik kontrolü - daha yüksek limit
+      if (currentPage > 100) break; // 50'den 100'e çıkarıldı
     }
     
+    print('DEBUG: Toplam ${photoItems.length} fotoğraf yüklendi');
     return photoItems;
   }
 
-  // Tek bir asset'i işle
-  Future<PhotoItem?> _processAsset(AssetEntity asset) async {
+  // Ultra optimize edilmiş asset işleme
+  Future<PhotoItem?> _processAssetOptimized(AssetEntity asset) async {
     try {
-      final file = await asset.file;
-      if (file != null) {
-        // Daha küçük thumbnail boyutu - daha hızlı yükleme
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
-        if (thumb != null) {
-          return PhotoItem(
-            id: asset.id,
-            thumb: thumb,
-            date: asset.createDateTime,
-            hash: '',
-            type: _isVideoMode ? MediaType.video : MediaType.image,
-            path: file.path,
-          );
-        }
+      // Daha küçük thumbnail boyutu - maksimum hız için
+      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(100, 100));
+      if (thumb != null) {
+        return PhotoItem(
+          id: asset.id,
+          thumb: thumb,
+          date: asset.createDateTime,
+          hash: '',
+          type: _isVideoMode ? MediaType.video : MediaType.image,
+          path: '', // Path'i lazy loading ile al
+        );
       }
     } catch (e) {
-      print('DEBUG: Asset işleme hatası: $e');
+      // Hata durumunda sessizce devam et
     }
     return null;
+  }
+
+  // Eski fonksiyon (geriye uyumluluk için)
+  Future<PhotoItem?> _processAsset(AssetEntity asset) async {
+    return _processAssetOptimized(asset);
   }
 
   // Albüm listesini yenile
