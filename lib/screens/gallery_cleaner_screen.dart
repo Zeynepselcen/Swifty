@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:photo_manager/photo_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter/foundation.dart'; // compute için
 
 import 'package:permission_handler/permission_handler.dart'; // HATIRLATMA: Tüm dosya yönetimi izni için eklendi, sorun olursa kaldırabilirsin.
 import 'package:flutter/services.dart'; // Tüm dosya yönetimi izni için eklendi
@@ -57,10 +58,40 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _disposeAllVideoControllers();
+    super.dispose();
+  }
+
+  // Tüm video controller'ları dispose et
+  void _disposeAllVideoControllers() {
     for (final c in _videoControllers.values) {
       c.dispose();
     }
-    super.dispose();
+    _videoControllers.clear();
+  }
+
+  // Görünmeyen video controller'ları dispose et (memory optimizasyonu)
+  void _disposeInvisibleVideoControllers() {
+    final visibleRange = 3; // Görünür video sayısı
+    final startIndex = (currentIndex - visibleRange).clamp(0, photos.length);
+    final endIndex = (currentIndex + visibleRange).clamp(0, photos.length);
+    
+    final controllersToDispose = <int>[];
+    
+    for (final entry in _videoControllers.entries) {
+      final index = entry.key;
+      if (index < startIndex || index > endIndex) {
+        controllersToDispose.add(index);
+      }
+    }
+    
+    for (final index in controllersToDispose) {
+      final controller = _videoControllers[index];
+      if (controller != null) {
+        controller.dispose();
+        _videoControllers.remove(index);
+      }
+    }
   }
 
   @override
@@ -348,11 +379,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     if (item.type == MediaType.video) {
       final controller = _videoControllers[index];
       if (controller == null) {
-        final future = GalleryService.getFilePath(item.id).then((path) async {
-          final c = VideoPlayerController.file(File(path));
-          await c.initialize();
-          setState(() { _videoControllers[index] = c; });
-        });
+        // Lazy loading - sadece görünür videoları yükle
+        _loadVideoController(item.id, index);
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -360,8 +388,23 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               child: Container(
                 width: maxCardWidth - 20,
                 height: maxCardHeight - 20,
-                color: Colors.black12,
-                child: const Center(child: CircularProgressIndicator()),
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 8),
+                      Text(
+                        'Video yükleniyor...',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 64)),
@@ -425,6 +468,41 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         width: maxCardWidth - 20,
         height: maxCardHeight - 20,
       );
+    }
+  }
+
+  // Video controller'ı lazy loading ile yükle
+  Future<void> _loadVideoController(String videoId, int index) async {
+    // Eğer zaten yükleniyorsa veya yüklenmişse çık
+    if (_videoControllers.containsKey(index)) return;
+    
+    try {
+      // Isolate ile arka planda video yükle
+      final videoData = await compute(_loadVideoInIsolate, videoId);
+      
+      if (mounted && videoData != null) {
+        final controller = VideoPlayerController.file(File(videoData['path']));
+        await controller.initialize();
+        
+        if (mounted) {
+          setState(() {
+            _videoControllers[index] = controller;
+          });
+        }
+      }
+    } catch (e) {
+      print('Video yükleme hatası: $e');
+    }
+  }
+
+  // Isolate'de video yükleme
+  static Future<Map<String, dynamic>?> _loadVideoInIsolate(String videoId) async {
+    try {
+      final path = await GalleryService.getFilePath(videoId);
+      return {'path': path};
+    } catch (e) {
+      print('Isolate video yükleme hatası: $e');
+      return null;
     }
   }
 
@@ -627,6 +705,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                 } else if (direction == CardSwiperDirection.right) {
                                                   _onSwipe(Direction.right, currentIndex + realIndex);
                                                 }
+                                                
+                                                // Video memory optimizasyonu
+                                                _disposeInvisibleVideoControllers();
+                                                
                                                 return true;
                                               },
                                               cardBuilder: (context, index, realIndex, previousIndex) {
@@ -635,12 +717,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                 if (photo.type == MediaType.video) {
                                                   final controller = _videoControllers[photoIndex];
                                                   if (controller == null) {
-                                                    // Video controller yoksa yükle
-                                                    GalleryService.getFilePath(photo.id).then((path) async {
-                                                      final c = VideoPlayerController.file(File(path));
-                                                      await c.initialize();
-                                                      setState(() { _videoControllers[photoIndex] = c; });
-                                                    });
+                                                    // Lazy loading - sadece görünür videoları yükle
+                                                    _loadVideoController(photo.id, photoIndex);
                                                     return Stack(
                                                       alignment: Alignment.center,
                                                       children: [
@@ -648,8 +726,23 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                           child: Container(
                                                             width: maxCardWidth - 20,
                                                             height: maxCardHeight - 20,
-                                                            color: Colors.black12,
-                                                            child: const Center(child: CircularProgressIndicator()),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.black12,
+                                                              borderRadius: BorderRadius.circular(12),
+                                                            ),
+                                                            child: const Center(
+                                                              child: Column(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                  CircularProgressIndicator(color: Colors.white),
+                                                                  SizedBox(height: 8),
+                                                                  Text(
+                                                                    'Video yükleniyor...',
+                                                                    style: TextStyle(color: Colors.white, fontSize: 12),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
                                                           ),
                                                         ),
                                                         const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 64)),
