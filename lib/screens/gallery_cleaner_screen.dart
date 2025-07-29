@@ -214,24 +214,24 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     );
   }
 
-  // --- _onSwipe eski stabil hali ---
+  // Geliştirilmiş _onSwipe fonksiyonu
   void _onSwipe(Direction dir, int index) async {
     if (dir == Direction.left) {
-      // Sadece silinecekler listesine ekle
+      // Sola kaydırma - silinecekler listesine ekle
       toDelete.add(photos[index].id);
+      print('DEBUG: Fotoğraf silinecekler listesine eklendi: ${photos[index].id}');
+    } else if (dir == Direction.right) {
+      // Sağa kaydırma - beğenilen (silinmeyecek)
+      print('DEBUG: Fotoğraf beğenildi: ${photos[index].id}');
     }
+    
     setState(() {
       currentIndex++;
-      // --- Video controller temizliği ---
-      _videoControllers.removeWhere((i, controller) {
-        if (i < currentIndex || i > currentIndex) {
-          controller.pause();
-          controller.dispose();
-          return true;
-        }
-        return false;
-      });
+      
+      // Video controller temizliği
+      _disposeInvisibleVideoControllers();
     });
+    
     // Eğer son fotoğrafı geçtiysek, toplu silme onayı iste (sadece bir kez)
     if (currentIndex >= photos.length && toDelete.isNotEmpty && !_batchDialogShown) {
       _batchDialogShown = true;
@@ -245,16 +245,51 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Delete Photos'),
-        content: Text('Are you sure you want to delete ${toDelete.length} photo(s)?'),
+        title: const Text('Fotoğrafları Sil'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${toDelete.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek istediğinizden emin misiniz?'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Bu işlem geri alınamaz!',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel'),
+            child: const Text('İptal'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Sil'),
           ),
         ],
       ),
@@ -306,7 +341,6 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     }
     
     Navigator.of(context).pop(); // Loading dialogu kapat
-    setState(() { toDelete.clear(); });
     
     // Silinen fotoğrafları listeden çıkar
     if (deleted > 0) {
@@ -331,6 +365,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       // Callback ile ana ekrana bildir
       widget.onPhotosDeleted?.call(deleted);
     }
+    
+    setState(() { toDelete.clear(); });
     
     // Başarı mesajı göster
     if (!mounted) return;
