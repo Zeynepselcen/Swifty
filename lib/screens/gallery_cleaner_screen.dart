@@ -17,7 +17,15 @@ class GalleryCleanerScreen extends StatefulWidget {
   final String? albumName;
   final List<PhotoItem>? photos;
   final bool isVideoMode;
-  const GalleryCleanerScreen({super.key, this.albumId, this.albumName, this.photos, this.isVideoMode = false});
+  final Function(int)? onPhotosDeleted; // Silme callback'i
+  const GalleryCleanerScreen({
+    super.key, 
+    this.albumId, 
+    this.albumName, 
+    this.photos, 
+    this.isVideoMode = false,
+    this.onPhotosDeleted,
+  });
 
   @override
   State<GalleryCleanerScreen> createState() => _GalleryCleanerScreenState();
@@ -269,6 +277,30 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     Navigator.of(context).pop(); // Loading dialogu kapat
     setState(() { toDelete.clear(); });
     
+    // Silinen fotoğrafları listeden çıkar
+    if (deleted > 0) {
+      final deletedIds = toDelete.toSet();
+      photos.removeWhere((photo) => deletedIds.contains(photo.id));
+      
+      // currentIndex'i güncelle (eğer silinen fotoğraflar currentIndex'ten önceyse)
+      final deletedBeforeCurrent = deletedIds.where((id) {
+        final photoIndex = photos.indexWhere((p) => p.id == id);
+        return photoIndex < currentIndex;
+      }).length;
+      
+      if (deletedBeforeCurrent > 0) {
+        currentIndex = (currentIndex - deletedBeforeCurrent).clamp(0, photos.length);
+      }
+      
+      // currentIndex'i photos.length'den büyükse düzelt
+      if (currentIndex >= photos.length) {
+        currentIndex = photos.length;
+      }
+      
+      // Callback ile ana ekrana bildir
+      widget.onPhotosDeleted?.call(deleted);
+    }
+    
     // Başarı mesajı göster
     if (!mounted) return;
     
@@ -276,7 +308,21 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Silme Tamamlandı'),
-        content: Text('$deleted ${widget.isVideoMode ? 'video' : 'fotoğraf'} başarıyla silindi.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$deleted ${widget.isVideoMode ? 'video' : 'fotoğraf'} başarıyla silindi.'),
+            const SizedBox(height: 8),
+            Text(
+              'Kalan: ${photos.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'}',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

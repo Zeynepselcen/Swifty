@@ -812,6 +812,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               albumName: album.name,
               photos: photoItems,
               isVideoMode: _isVideoMode,
+              onPhotosDeleted: (deletedCount) {
+                // Albüm listesini güncelle
+                _refreshAlbumList();
+              },
             ),
           ),
         );
@@ -840,6 +844,23 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       'totalCount': totalCount,
       'isVideoMode': _isVideoMode,
     });
+  }
+
+  // Albüm listesini yenile
+  Future<void> _refreshAlbumList() async {
+    setState(() {
+      _isLoadingAlbums = true;
+    });
+    
+    try {
+      await _fetchAlbumsInternal();
+    } catch (e) {
+      print('Albüm listesi yenileme hatası: $e');
+    } finally {
+      setState(() {
+        _isLoadingAlbums = false;
+      });
+    }
   }
 
   // Isolate'de çalışacak fonksiyon
