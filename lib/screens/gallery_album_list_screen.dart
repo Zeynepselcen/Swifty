@@ -750,101 +750,27 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
-    // Modern loading dialog göster
+    // Basit loading dialog göster
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(32),
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFB24592),
-                  Color(0xFFF15F79),
-                  Color(0xFF6D327A),
-                ],
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 16),
+              Text(
+                'Yükleniyor...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  '${album.name}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Fotoğraflar yükleniyor...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: 200,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: LinearProgressIndicator(
-                    backgroundColor: Colors.transparent,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Lütfen bekleyin',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -966,13 +892,24 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       // Daha küçük thumbnail boyutu - maksimum hız için
       final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(100, 100));
       if (thumb != null) {
+        // Path'i al
+        String path = '';
+        try {
+          final file = await asset.file;
+          if (file != null) {
+            path = file.path;
+          }
+        } catch (e) {
+          print('Path alma hatası: $e');
+        }
+        
         return PhotoItem(
           id: asset.id,
           thumb: thumb,
           date: asset.createDateTime,
           hash: '',
           type: _isVideoMode ? MediaType.video : MediaType.image,
-          path: '', // Path'i lazy loading ile al
+          path: path,
         );
       }
     } catch (e) {

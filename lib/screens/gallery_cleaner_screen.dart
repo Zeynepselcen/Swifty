@@ -241,123 +241,27 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   }
 
   void _showBatchDeleteDialog() async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Fotoğrafları Sil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${toDelete.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek istediğinizden emin misiniz?'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.warning_amber, color: Colors.red, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Bu işlem geri alınamaz!',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Sil'),
-          ),
-        ],
-      ),
-    );
-    if (shouldDelete == true) {
-      await _deleteBatch();
-    } else {
-      // Kullanıcı vazgeçerse listeyi temizle
-      setState(() { toDelete.clear(); });
-    }
-    // Onay veya iptal sonrası tekrar dialog açılmasın diye flag'i sıfırla
+    await _deleteBatch();
     setState(() { _batchDialogShown = false; });
   }
 
   Future<void> _deleteBatch() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 16),
-              Text(
-                'Siliniyor...',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (toDelete.isEmpty) return;
     
     int deleted = 0;
-    if (toDelete.isNotEmpty) {
-      try {
-        await PhotoManager.editor.deleteWithIds(toDelete);
-        deleted = toDelete.length;
-      } catch (e) {
-        print('Silme hatası: $e');
-      }
+    try {
+      await PhotoManager.editor.deleteWithIds(toDelete);
+      deleted = toDelete.length;
+    } catch (e) {
+      print('Silme hatası: $e');
     }
-    
-    Navigator.of(context).pop(); // Loading dialogu kapat
     
     // Silinen fotoğrafları listeden çıkar
     if (deleted > 0) {
       final deletedIds = toDelete.toSet();
       photos.removeWhere((photo) => deletedIds.contains(photo.id));
       
-      // currentIndex'i güncelle (eğer silinen fotoğraflar currentIndex'ten önceyse)
-      final deletedBeforeCurrent = deletedIds.where((id) {
-        final photoIndex = photos.indexWhere((p) => p.id == id);
-        return photoIndex < currentIndex;
-      }).length;
-      
-      if (deletedBeforeCurrent > 0) {
-        currentIndex = (currentIndex - deletedBeforeCurrent).clamp(0, photos.length);
-      }
-      
-      // currentIndex'i photos.length'den büyükse düzelt
+      // currentIndex'i güncelle
       if (currentIndex >= photos.length) {
         currentIndex = photos.length;
       }
@@ -367,17 +271,6 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     }
     
     setState(() { toDelete.clear(); });
-    
-    // Basit başarı mesajı (dialog yerine snackbar)
-    if (mounted && deleted > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$deleted ${widget.isVideoMode ? 'video' : 'fotoğraf'} silindi. Kalan: ${photos.length}'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 
   String _localizedAlbumName(String name, AppLocalizations appLoc) {
@@ -584,78 +477,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         child: InkWell(
                           borderRadius: BorderRadius.circular(24),
                           onTap: () async {
-                            final shouldDelete = await showDialog<bool>(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Çık ve Sil'),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${toDelete.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek istediğinizden emin misiniz?'),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.red.withOpacity(0.3)),
-                                      ),
-                                      child: const Row(
-                                        children: [
-                                          Icon(Icons.warning_amber, color: Colors.red, size: 20),
-                                          SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              'Bu işlem geri alınamaz!',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(false),
-                                    child: const Text('İptal'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.of(context).pop(true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    child: const Text('Sil ve Çık'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            
-                            if (shouldDelete == true) {
-                              try {
-                                await _deleteBatch();
-                                if (mounted) {
-                                  Navigator.of(context).pop();
-                                }
-                              } catch (e) {
-                                print('Silme hatası: $e');
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Silme işlemi sırasında hata oluştu'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
+                            await _deleteBatch();
+                            Navigator.of(context).pop();
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
@@ -900,93 +723,12 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       return true;
     }
     
-    final appLoc = AppLocalizations.of(context);
-    final remaining = photos.length - currentIndex;
-    final label = widget.isVideoMode ? (appLoc?.videos ?? 'videolar') : (appLoc?.photos ?? 'fotoğraflar');
-    
-    // Seçili fotoğraf sayısını kontrol et
-    final selectedCount = toDelete.length;
-    
-    final shouldLeave = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Çıkış Onayı'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Henüz $remaining $label gözden geçirmediniz.'),
-            if (selectedCount > 0) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '$selectedCount ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek için işaretlendi!',
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop('cancel'),
-            child: const Text('İptal'),
-          ),
-          if (selectedCount > 0)
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop('delete'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Çık ve Sil'),
-            ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop('exit'),
-            child: const Text('Sadece Çık'),
-          ),
-        ],
-      ),
-    );
-    
-    if (shouldLeave == 'delete') {
-      // Seçili fotoğrafları sil ve çık
-      try {
-        await _deleteBatch();
-        return true;
-      } catch (e) {
-        print('Silme hatası: $e');
-        return false;
-      }
-    } else if (shouldLeave == 'exit') {
-      // Sadece çık, seçili fotoğrafları silme
-      setState(() { 
-        toDelete.clear(); 
-        _batchDialogShown = false;
-      });
-      return true;
+    // Seçili fotoğraf varsa sil ve çık
+    if (toDelete.isNotEmpty) {
+      await _deleteBatch();
     }
     
-    // İptal edildi
-    return false;
+    return true;
   }
 
   // --- Tüm Dosya Yönetimi İzni için eklenen kod başlangıcı ---
