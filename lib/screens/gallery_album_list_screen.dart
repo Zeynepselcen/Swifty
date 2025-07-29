@@ -796,8 +796,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       final totalCount = await album.assetCountAsync;
       print('DEBUG: Toplam ${totalCount} asset bulundu');
       
-      // Isolate ile arka planda işle
-      final photoItems = await _loadAssetsInIsolate(album, totalCount);
+      // Ana thread'de işle (isolate sorunu nedeniyle)
+      final photoItems = await _loadAssetsDirectly(album, totalCount);
       
       // Loading dialog'u kapat
       Navigator.of(context).pop();
@@ -836,44 +836,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     }
   }
 
-  // Isolate ile arka planda asset yükleme
-  Future<List<PhotoItem>> _loadAssetsInIsolate(AssetPathEntity album, int totalCount) async {
-    return await compute(_processAssets, {
-      'albumId': album.id,
-      'albumName': album.name,
-      'totalCount': totalCount,
-      'isVideoMode': _isVideoMode,
-    });
-  }
-
-  // Albüm listesini yenile
-  Future<void> _refreshAlbumList() async {
-    setState(() {
-      _isLoadingAlbums = true;
-    });
-    
-    try {
-      await _fetchAlbumsInternal();
-    } catch (e) {
-      print('Albüm listesi yenileme hatası: $e');
-    } finally {
-      setState(() {
-        _isLoadingAlbums = false;
-      });
-    }
-  }
-
-  // Isolate'de çalışacak fonksiyon
-  static Future<List<PhotoItem>> _processAssets(Map<String, dynamic> params) async {
-    final String albumId = params['albumId'];
-    final String albumName = params['albumName'];
-    final int totalCount = params['totalCount'];
-    final bool isVideoMode = params['isVideoMode'];
-    
-    // Albümü yeniden al (isolate'de)
-    final albums = await PhotoManager.getAssetPathList();
-    final album = albums.firstWhere((a) => a.id == albumId);
-    
+  // Ana thread'de asset yükleme (isolate sorunu nedeniyle)
+  Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
     final photoItems = <PhotoItem>[];
     
     // Pagination ile tüm fotoğrafları al
@@ -897,7 +861,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 thumb: thumb,
                 date: asset.createDateTime,
                 hash: '',
-                type: isVideoMode ? MediaType.video : MediaType.image,
+                type: _isVideoMode ? MediaType.video : MediaType.image,
                 path: file.path,
               ));
             }
@@ -920,6 +884,25 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     
     return photoItems;
   }
+
+  // Albüm listesini yenile
+  Future<void> _refreshAlbumList() async {
+    setState(() {
+      _isLoadingAlbums = true;
+    });
+    
+    try {
+      await _fetchAlbumsInternal();
+    } catch (e) {
+      print('Albüm listesi yenileme hatası: $e');
+    } finally {
+      setState(() {
+        _isLoadingAlbums = false;
+      });
+    }
+  }
+
+
 
 
 
