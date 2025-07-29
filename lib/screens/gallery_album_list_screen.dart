@@ -750,32 +750,57 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
+    // Loading dialog göster
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${album.name} yükleniyor...',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Bu işlem biraz zaman alabilir',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    
     try {
-      final assets = await album.getAssetListPaged(page: 0, size: 1000);
-      print('DEBUG: ${assets.length} asset bulundu');
+      // Tüm fotoğrafları al (sınırsız)
+      final totalCount = await album.assetCountAsync;
+      print('DEBUG: Toplam ${totalCount} asset bulundu');
       
-      final photoItems = <PhotoItem>[];
+      // Isolate ile arka planda işle
+      final photoItems = await _loadAssetsInIsolate(album, totalCount);
       
-      for (final asset in assets) {
-        try {
-          final file = await asset.file;
-          if (file != null) {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
-            if (thumb != null) {
-              photoItems.add(PhotoItem(
-                id: asset.id,
-                thumb: thumb,
-                date: asset.createDateTime,
-                hash: '',
-                type: _isVideoMode ? MediaType.video : MediaType.image,
-                path: file.path,
-              ));
-            }
-          }
-        } catch (e) {
-          print('DEBUG: Asset işleme hatası: $e');
-        }
-      }
+      // Loading dialog'u kapat
+      Navigator.of(context).pop();
       
       print('DEBUG: ${photoItems.length} PhotoItem oluşturuldu');
       
@@ -797,11 +822,82 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         );
       }
     } catch (e) {
+      // Loading dialog'u kapat
+      Navigator.of(context).pop();
+      
       print('DEBUG: _openAlbumDirectly hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Klasör açılırken hata oluştu: $e')),
       );
     }
+  }
+
+  // Isolate ile arka planda asset yükleme
+  Future<List<PhotoItem>> _loadAssetsInIsolate(AssetPathEntity album, int totalCount) async {
+    return await compute(_processAssets, {
+      'albumId': album.id,
+      'albumName': album.name,
+      'totalCount': totalCount,
+      'isVideoMode': _isVideoMode,
+    });
+  }
+
+  // Isolate'de çalışacak fonksiyon
+  static Future<List<PhotoItem>> _processAssets(Map<String, dynamic> params) async {
+    final String albumId = params['albumId'];
+    final String albumName = params['albumName'];
+    final int totalCount = params['totalCount'];
+    final bool isVideoMode = params['isVideoMode'];
+    
+    // Albümü yeniden al (isolate'de)
+    final albums = await PhotoManager.getAssetPathList();
+    final album = albums.firstWhere((a) => a.id == albumId);
+    
+    final photoItems = <PhotoItem>[];
+    
+    // Pagination ile tüm fotoğrafları al
+    const int pageSize = 100;
+    int currentPage = 0;
+    
+    while (photoItems.length < totalCount) {
+      final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
+      if (assets.isEmpty) break;
+      
+      // Batch işleme - her 10 asset'te bir UI güncelle
+      for (int i = 0; i < assets.length; i++) {
+        try {
+          final asset = assets[i];
+          final file = await asset.file;
+          if (file != null) {
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)); // Daha küçük thumbnail
+            if (thumb != null) {
+              photoItems.add(PhotoItem(
+                id: asset.id,
+                thumb: thumb,
+                date: asset.createDateTime,
+                hash: '',
+                type: isVideoMode ? MediaType.video : MediaType.image,
+                path: file.path,
+              ));
+            }
+          }
+          
+          // Her 10 asset'te bir kısa bekleme (UI responsive tutmak için)
+          if (i % 10 == 0) {
+            await Future.delayed(const Duration(milliseconds: 10));
+          }
+        } catch (e) {
+          print('DEBUG: Asset işleme hatası: $e');
+        }
+      }
+      
+      currentPage++;
+      
+      // Güvenlik kontrolü - sonsuz döngüyü önle
+      if (currentPage > 100) break;
+    }
+    
+    return photoItems;
   }
 
 
