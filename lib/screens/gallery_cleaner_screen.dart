@@ -183,15 +183,16 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   }
 
   void _showPermissionDeniedDialog() {
+    final appLoc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Permission Required'),
-        content: Text('Permission is required to access your gallery. Please enable it in your device settings.'),
+        title: const Text('Permission Required'),
+        content: const Text('Permission is required to access your gallery. Please enable it in your device settings.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -199,15 +200,16 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   }
 
   void _showEmptyGalleryDialog() {
+    final appLoc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Galeri Boş'),
-        content: Text('Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
+        title: Text(appLoc?.noAlbumsFound ?? 'Galeri Boş'),
+        content: Text(appLoc?.noAlbumsFound ?? 'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Tamam'),
+            child: Text(appLoc?.ok ?? 'Tamam'),
           ),
         ],
       ),
@@ -288,15 +290,15 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     if (item.type == MediaType.video) {
       final controller = _videoControllers[index];
       if (controller == null) {
-        // Lazy loading - sadece görünür videoları yükle
+        // Hızlı video yükleme - arka planda başlat
         _loadVideoController(item.id, index);
         return Stack(
           alignment: Alignment.center,
           children: [
             Center(
               child: Container(
-                width: maxCardWidth - 20,
-                height: maxCardHeight - 20,
+                width: maxCardWidth - 40,
+                height: maxCardHeight - 40,
                 decoration: BoxDecoration(
                   color: Colors.black12,
                   borderRadius: BorderRadius.circular(12),
@@ -305,18 +307,25 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      ),
                       SizedBox(height: 8),
                       Text(
                         'Video yükleniyor...',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(color: Colors.white, fontSize: 10),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 64)),
+            const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 48)),
           ],
         );
       } else {
@@ -324,46 +333,62 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
           alignment: Alignment.center,
           children: [
             Center(
-              child: AspectRatio(
-                aspectRatio: controller.value.aspectRatio,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(child: VideoPlayer(controller)),
-                    Row(
+              child: Container(
+                width: maxCardWidth - 40,
+                height: maxCardHeight - 40,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: controller.value.aspectRatio,
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
-                          onPressed: () {
-                            final newPosition = controller.value.position - const Duration(seconds: 10);
-                            controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
-                          },
+                        Expanded(
+                          child: VideoPlayer(
+                            controller,
+                            // Video kalitesi ayarları
+                          ),
                         ),
-                        IconButton(
-                          icon: Icon(controller.value.isPlaying ? Icons.pause_circle : Icons.play_circle, color: Colors.white, size: 48),
-                          onPressed: () {
-                            setState(() {
-                              controller.value.isPlaying ? controller.pause() : controller.play();
-                            });
-                          },
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                              onPressed: () {
+                                final newPosition = controller.value.position - const Duration(seconds: 10);
+                                controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(controller.value.isPlaying ? Icons.pause_circle : Icons.play_circle, color: Colors.white, size: 48),
+                              onPressed: () {
+                                setState(() {
+                                  controller.value.isPlaying ? controller.pause() : controller.play();
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                              onPressed: () {
+                                final max = controller.value.duration;
+                                final newPosition = controller.value.position + const Duration(seconds: 10);
+                                controller.seekTo(newPosition < max ? newPosition : max);
+                              },
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
-                          onPressed: () {
-                            final max = controller.value.duration;
-                            final newPosition = controller.value.position + const Duration(seconds: 10);
-                            controller.seekTo(newPosition < max ? newPosition : max);
-                          },
+                        VideoProgressIndicator(
+                          controller,
+                          allowScrubbing: true,
+                          colors: VideoProgressColors(
+                            playedColor: Color(0xFF4DB6AC),
+                            bufferedColor: Color(0xFF4DB6AC).withOpacity(0.5),
+                            backgroundColor: Colors.white.withOpacity(0.3),
+                          ),
                         ),
                       ],
                     ),
-                    VideoProgressIndicator(
-                      controller,
-                      allowScrubbing: true,
-                      colors: VideoProgressColors(playedColor: Color(0xFF4DB6AC)),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -371,26 +396,49 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         );
       }
     } else {
-      return Image.memory(
-        item.thumb,
-        fit: BoxFit.cover,
-        width: maxCardWidth - 20,
-        height: maxCardHeight - 20,
+      return Container(
+        width: maxCardWidth - 40, // Amblemler için daha fazla boşluk
+        height: maxCardHeight - 40,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: item.path != null && item.path!.isNotEmpty
+              ? Image.file(
+                  File(item.path!),
+                  fit: BoxFit.contain, // Tam boyut göster, kırpma yapma
+                  width: maxCardWidth - 40,
+                  height: maxCardHeight - 40,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Eğer dosya yüklenemezse thumbnail kullan
+                    return Image.memory(
+                      item.thumb,
+                      fit: BoxFit.contain,
+                      width: maxCardWidth - 40,
+                      height: maxCardHeight - 40,
+                    );
+                  },
+                )
+              : Image.memory(
+                  item.thumb,
+                  fit: BoxFit.contain, // Tam boyut göster, kırpma yapma
+                  width: maxCardWidth - 40,
+                  height: maxCardHeight - 40,
+                ),
+        ),
       );
     }
   }
 
-  // Video controller'ı lazy loading ile yükle
+  // Video controller'ı basit yükleme
   Future<void> _loadVideoController(String videoId, int index) async {
     // Eğer zaten yükleniyorsa veya yüklenmişse çık
     if (_videoControllers.containsKey(index)) return;
     
     try {
-      // Isolate ile arka planda video yükle
-      final videoData = await compute(_loadVideoInIsolate, videoId);
+      // PhotoItem'dan path'i al
+      final photo = photos.firstWhere((p) => p.id == videoId);
       
-      if (mounted && videoData != null) {
-        final controller = VideoPlayerController.file(File(videoData['path']));
+      if (mounted && photo.path != null && photo.path!.isNotEmpty) {
+        final controller = VideoPlayerController.file(File(photo.path!));
         await controller.initialize();
         
         if (mounted) {
@@ -401,17 +449,6 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       }
     } catch (e) {
       print('Video yükleme hatası: $e');
-    }
-  }
-
-  // Isolate'de video yükleme
-  static Future<Map<String, dynamic>?> _loadVideoInIsolate(String videoId) async {
-    try {
-      final path = await GalleryService.getFilePath(videoId);
-      return {'path': path};
-    } catch (e) {
-      print('Isolate video yükleme hatası: $e');
-      return null;
     }
   }
 
@@ -723,12 +760,92 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       return true;
     }
     
-    // Seçili fotoğraf varsa sil ve çık
-    if (toDelete.isNotEmpty) {
+    // AppLocalizations al
+    final appLoc = AppLocalizations.of(context);
+    
+    // Kalan fotoğraf sayısını hesapla
+    final remaining = photos.length - currentIndex;
+    final selectedCount = toDelete.length;
+    
+    // Çıkış dialog'u göster
+    final shouldLeave = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Çıkış Onayı'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(appLoc?.exitReviewDialog(
+              widget.isVideoMode ? (appLoc?.videos ?? 'videolar') : (appLoc?.photos ?? 'fotoğraflar'),
+              remaining
+            ) ?? 'Henüz $remaining ${widget.isVideoMode ? 'video' : 'fotoğraf'} gözden geçirmediniz.'),
+            if (selectedCount > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$selectedCount ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek için işaretlendi!',
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: Text(appLoc?.cancel ?? 'İptal'),
+          ),
+          if (selectedCount > 0)
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop('delete'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sil ve Çık'),
+            ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop('exit'),
+            child: const Text('Silmeden Çık'),
+          ),
+        ],
+      ),
+    );
+    
+    if (shouldLeave == 'delete') {
+      // Seçili fotoğrafları sil ve çık
       await _deleteBatch();
+      return true;
+    } else if (shouldLeave == 'exit') {
+      // Sadece çık, seçili fotoğrafları silme
+      setState(() { 
+        toDelete.clear(); 
+        _batchDialogShown = false;
+      });
+      return true;
     }
     
-    return true;
+    // İptal edildi
+    return false;
   }
 
   // --- Tüm Dosya Yönetimi İzni için eklenen kod başlangıcı ---

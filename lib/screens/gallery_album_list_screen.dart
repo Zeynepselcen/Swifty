@@ -777,14 +777,16 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         );
       } else {
         print('DEBUG: PhotoItem listesi boş');
+        final appLoc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bu klasörde ${_isVideoMode ? "video" : "fotoğraf"} bulunamadı')),
+          SnackBar(content: Text(appLoc?.noAlbumsFound ?? 'Bu klasörde ${_isVideoMode ? "video" : "fotoğraf"} bulunamadı')),
         );
       }
     } catch (e) {
       print('DEBUG: _openAlbumDirectly hatası: $e');
+      final appLoc = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Klasör açılırken hata oluştu: $e')),
+        SnackBar(content: Text(appLoc?.noAlbumsFound ?? 'Klasör açılırken hata oluştu: $e')),
       );
     }
   }
@@ -848,8 +850,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   // Ultra optimize edilmiş asset işleme
   Future<PhotoItem?> _processAssetOptimized(AssetEntity asset) async {
     try {
-      // Daha küçük thumbnail boyutu - maksimum hız için
-      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(100, 100));
+      // Daha yüksek kalite thumbnail - kalite için
+      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(300, 300));
       if (thumb != null) {
         // Path'i al
         String path = '';
