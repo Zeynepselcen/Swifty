@@ -234,26 +234,53 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 16),
+              Text(
+                'Siliniyor...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+    
     int deleted = 0;
     if (toDelete.isNotEmpty) {
       try {
         await PhotoManager.editor.deleteWithIds(toDelete);
         deleted = toDelete.length;
-      } catch (_) {}
+      } catch (e) {
+        print('Silme hatası: $e');
+      }
     }
+    
     Navigator.of(context).pop(); // Loading dialogu kapat
     setState(() { toDelete.clear(); });
+    
+    // Başarı mesajı göster
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Completed'),
-        content: Text('Successfully deleted $deleted photo(s).'),
+        title: const Text('Silme Tamamlandı'),
+        content: Text('$deleted ${widget.isVideoMode ? 'video' : 'fotoğraf'} başarıyla silindi.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('Tamam'),
           ),
         ],
       ),
@@ -407,6 +434,68 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       ),
                     ),
                   ),
+                  // Çık ve Sil butonu (sadece seçili fotoğraf varsa göster)
+                  if (toDelete.isNotEmpty)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: () async {
+                            final shouldDelete = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Çık ve Sil'),
+                                content: Text('${toDelete.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek istediğinizden emin misiniz?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: const Text('İptal'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Sil ve Çık'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (shouldDelete == true) {
+                              await _deleteBatch();
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.delete_forever, color: Colors.white, size: 20),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${toDelete.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     top: 18,
                     left: 0,
@@ -610,24 +699,79 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       final remaining = photos.length - currentIndex;
       final label = widget.isVideoMode ? (appLoc?.videos ?? 'videolar') : (appLoc?.photos ?? 'fotoğraflar');
       final label2 = widget.isVideoMode ? (appLoc?.videos.toLowerCase() ?? 'videolar') : (appLoc?.photos.toLowerCase() ?? 'fotoğraflar');
+      
+      // Seçili fotoğraf sayısını kontrol et
+      final selectedCount = toDelete.length;
+      
       final shouldLeave = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(appLoc?.cancel ?? 'Vazgeç'),
-          content: Text(appLoc?.exitReviewDialog(label, remaining) ?? ''),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(appLoc?.exitReviewDialog(label, remaining) ?? ''),
+              if (selectedCount > 0) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$selectedCount ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek için işaretlendi!',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(appLoc?.cancel ?? 'Vazgeç'),
             ),
+            if (selectedCount > 0)
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop('delete'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Çık ve Sil'),
+              ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(appLoc?.ok ?? 'Tamam'),
+              onPressed: () => Navigator.of(context).pop('exit'),
+              child: Text(appLoc?.ok ?? 'Sadece Çık'),
             ),
           ],
         ),
       );
-      return shouldLeave == true;
+      
+      if (shouldLeave == 'delete') {
+        // Seçili fotoğrafları sil ve çık
+        await _deleteBatch();
+        return true;
+      } else if (shouldLeave == 'exit') {
+        // Sadece çık, seçili fotoğrafları silme
+        setState(() { toDelete.clear(); });
+        return true;
+      }
+      return false;
     }
     return true;
   }
