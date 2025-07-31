@@ -40,6 +40,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   bool _permissionDenied = false;
   bool _galleryPermissionGranted = false;
   List<String> toDelete = []; // Sola kaydırılan fotoğrafların id'leri
+  List<PhotoItem> deletedPhotos = []; // Silinen fotoğrafların listesi
   bool _batchDialogShown = false;
   Map<int, VideoPlayerController> _videoControllers = {};
 
@@ -221,6 +222,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     if (dir == Direction.left) {
       // Sola kaydırma - silinecekler listesine ekle
       toDelete.add(photos[index].id);
+      // Silinen fotoğrafı listeye ekle
+      deletedPhotos.add(photos[index]);
       print('DEBUG: Fotoğraf silinecekler listesine eklendi: ${photos[index].id}');
     } else if (dir == Direction.right) {
       // Sağa kaydırma - beğenilen (silinmeyecek)
@@ -509,37 +512,62 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                     Positioned(
                       top: 12,
                       right: 12,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: () async {
-                            await _deleteBatch();
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.delete_forever, color: Colors.white, size: 20),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${toDelete.length}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                      child: Row(
+                        children: [
+                          // Geri alma butonu
+                          if (deletedPhotos.isNotEmpty)
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () {
+                                  _showUndoDialog();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(24),
                                   ),
+                                  child: const Icon(Icons.undo, color: Colors.white, size: 20),
                                 ),
-                              ],
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          // Silme butonu
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () async {
+                                await _deleteBatch();
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.delete_forever, color: Colors.white, size: 20),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${toDelete.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   Positioned(
@@ -702,11 +730,16 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                     );
                                                   }
                                                 } else {
-                                                  return Image.memory(
-                                                    photo.thumb,
-                                                    fit: BoxFit.cover,
-                                                    width: maxCardWidth - 20,
-                                                    height: maxCardHeight - 20,
+                                                  return GestureDetector(
+                                                    onTap: () {
+                                                      _showFullScreenImage(photo);
+                                                    },
+                                                    child: Image.memory(
+                                                      photo.thumb,
+                                                      fit: BoxFit.cover,
+                                                      width: maxCardWidth - 20,
+                                                      height: maxCardHeight - 20,
+                                                    ),
                                                   );
                                                 }
                                               },
@@ -846,6 +879,87 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     
     // İptal edildi
     return false;
+  }
+
+  // Geri alma dialog'u
+  void _showUndoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Geri Alma'),
+        content: Text('${deletedPhotos.length} fotoğrafı geri almak istiyor musunuz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _undoLastDeletion();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('Geri Al', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Son silme işlemini geri al
+  void _undoLastDeletion() {
+    if (deletedPhotos.isNotEmpty) {
+      setState(() {
+        // Son silinen fotoğrafı geri ekle
+        final lastDeleted = deletedPhotos.last;
+        photos.insert(currentIndex, lastDeleted);
+        
+        // Listelerden çıkar
+        deletedPhotos.removeLast();
+        toDelete.remove(lastDeleted.id);
+        
+        // currentIndex'i güncelle
+        currentIndex = (currentIndex - 1).clamp(0, photos.length - 1);
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Son silinen fotoğraf geri alındı'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // Tam ekran fotoğraf görüntüleme
+  void _showFullScreenImage(PhotoItem photo) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              'Fotoğraf Detayı',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.memory(
+                photo.thumb,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // --- Tüm Dosya Yönetimi İzni için eklenen kod başlangıcı ---

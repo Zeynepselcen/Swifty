@@ -796,12 +796,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
     final photoItems = <PhotoItem>[];
     
-    // Çok daha büyük sayfa boyutu
-    const int pageSize = 500; // 200'den 500'e çıkarıldı
+    // Daha hızlı yükleme için küçük sayfa boyutu
+    const int pageSize = 50; // 500'den 50'ye düşürüldü - daha hızlı açılım
     int currentPage = 0;
     
-    // Maksimum yüklenecek fotoğraf sayısı (1000+ fotoğraf için)
-    const int maxPhotos = 2000; // 2000 fotoğrafa kadar destek
+    // Daha hızlı yükleme için sınırlı fotoğraf sayısı
+    const int maxPhotos = 500; // 2000'den 500'e düşürüldü - daha hızlı açılım
     
     while (photoItems.length < totalCount && photoItems.length < maxPhotos) {
       final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
