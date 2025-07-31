@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../services/gallery_service.dart';
 import '../models/photo_item.dart';
+import '../widgets/debounced_button.dart';
 import 'dart:io';
 import 'package:photo_manager/photo_manager.dart';
 import '../l10n/app_localizations.dart';
@@ -487,22 +488,25 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   Positioned(
                     top: 12,
                     left: 12,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () async {
-                          if (await _onWillPop()) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.13),
-                            borderRadius: BorderRadius.circular(24),
+                    child: DebouncedButton(
+                      onPressed: () async {
+                        if (await _onWillPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: null, // DebouncedButton üstte olduğu için null
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.13),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 28),
                           ),
-                          child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 28),
                         ),
                       ),
                     ),
@@ -516,53 +520,59 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         children: [
                           // Geri alma butonu
                           if (deletedPhotos.isNotEmpty)
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: () {
-                                  _showUndoDialog();
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.9),
-                                    borderRadius: BorderRadius.circular(24),
+                            DebouncedButton(
+                              onPressed: () async {
+                                _showUndoDialog();
+                              },
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: null, // DebouncedButton üstte olduğu için null
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: const Icon(Icons.undo, color: Colors.white, size: 20),
                                   ),
-                                  child: const Icon(Icons.undo, color: Colors.white, size: 20),
                                 ),
                               ),
                             ),
                           const SizedBox(width: 8),
                           // Silme butonu
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () async {
-                                await _deleteBatch();
-                                Navigator.of(context).pop();
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.delete_forever, color: Colors.white, size: 20),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${toDelete.length}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
+                          DebouncedButton(
+                            onPressed: () async {
+                              await _deleteBatch();
+                              Navigator.of(context).pop();
+                            },
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: null, // DebouncedButton üstte olduğu için null
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.delete_forever, color: Colors.white, size: 20),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${toDelete.length}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

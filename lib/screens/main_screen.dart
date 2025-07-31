@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'onboarding_screen.dart';
 import 'gallery_album_list_screen.dart';
+import '../widgets/debounced_button.dart';
 // import '../l10n/app_localizations.dart'; // kaldırıldı
 
 import 'dart:io';
@@ -243,34 +244,40 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4DB6AC),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    ),
-                    icon: const Icon(Icons.info_outline),
-                    label: Text(appLoc.welcome, style: const TextStyle(fontSize: 18)),
-                    onPressed: () {
+                  DebouncedButton(
+                    onPressed: () async {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
                       );
                     },
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4DB6AC),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                      ),
+                      icon: const Icon(Icons.info_outline),
+                      label: Text(appLoc.welcome, style: const TextStyle(fontSize: 18)),
+                      onPressed: null, // DebouncedButton üstte olduğu için null
+                    ),
                   ),
                   const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE57373),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    ),
-                    icon: const Icon(Icons.photo),
-                    label: Text(appLoc.start, style: const TextStyle(fontSize: 18)),
-                    onPressed: () {
+                  DebouncedButton(
+                    onPressed: () async {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => GalleryAlbumListScreen()),
                       );
                     },
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE57373),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                      ),
+                      icon: const Icon(Icons.photo),
+                      label: Text(appLoc.start, style: const TextStyle(fontSize: 18)),
+                      onPressed: null, // DebouncedButton üstte olduğu için null
+                    ),
                   ),
 
                 ],
