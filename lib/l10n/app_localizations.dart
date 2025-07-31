@@ -437,6 +437,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No duplicate photos found in this folder.'**
   String get noDuplicatesFound;
+
+  /// No description provided for @recentlyDeletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get recentlyDeletedTitle;
+
+  /// No description provided for @recentlyDeletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items have been deleted and moved to the \"Recently Deleted\" album. These items will remain there for 30 days and then be permanently deleted automatically.'**
+  String recentlyDeletedMessage(Object count);
+
+  /// No description provided for @zoomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch to zoom'**
+  String get zoomHint;
+
+  /// No description provided for @zoomHintDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use two fingers to zoom in and out on photos for better viewing'**
+  String get zoomHintDescription;
 }
 
 class _AppLocalizationsDelegate

@@ -54,5 +54,9 @@
   "duplicateCheckQuestion": "Would you like to check for duplicates in this folder?",
   "duplicateCheckDescription": "If duplicate photos are found, you can choose which ones to delete.",
   "yesCheckDuplicates": "Yes, Check",
-  "noDuplicatesFound": "No duplicate photos found in this folder."
+  "noDuplicatesFound": "No duplicate photos found in this folder.",
+  "recentlyDeletedTitle": "Recently Deleted",
+  "recentlyDeletedMessage": "{count} items have been deleted and moved to the \"Recently Deleted\" album. These items will remain there for 30 days and then be permanently deleted automatically.",
+  "zoomHint": "Pinch to zoom",
+  "zoomHintDescription": "Use two fingers to zoom in and out on photos for better viewing"
 } 

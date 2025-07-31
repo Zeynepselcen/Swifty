@@ -189,4 +189,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDuplicatesFound => 'No duplicate photos found in this folder.';
+
+  @override
+  String get recentlyDeletedTitle => 'Recently Deleted';
+
+  @override
+  String recentlyDeletedMessage(Object count) {
+    return '$count items have been deleted and moved to the \"Recently Deleted\" album. These items will remain there for 30 days and then be permanently deleted automatically.';
+  }
+
+  @override
+  String get zoomHint => 'Pinch to zoom';
+
+  @override
+  String get zoomHintDescription =>
+      'Use two fingers to zoom in and out on photos for better viewing';
 }

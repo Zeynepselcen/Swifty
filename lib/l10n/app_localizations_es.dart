@@ -12,10 +12,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appTitle => 'Swifty';
 
   @override
-  String get mainScreenTitle => 'Desliza para limpiar la galería';
+  String get mainScreenTitle => 'Desliza para Limpiar Galería';
 
   @override
-  String get mainScreenSubtitle => '¡Administra tus fotos fácilmente!';
+  String get mainScreenSubtitle => '¡Gestiona tus fotos fácilmente!';
 
   @override
   String get start => 'Comenzar';
@@ -27,7 +27,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get languageSelect => 'Idioma';
 
   @override
-  String get selectLanguage => 'Seleccionar idioma';
+  String get selectLanguage => 'Seleccionar Idioma';
 
   @override
   String get noAlbumsFound => 'No se encontraron álbumes.';
@@ -46,7 +46,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String cancelDesc(Object count) {
-    return 'Todas las fotos revisadas. Si sales perderás $count foto(s). Tendrás que empezar de nuevo. ¿Quieres salir?';
+    return 'Todas las fotos revisadas. Salir hará perder $count foto(s). Tendrás que empezar de nuevo. ¿Quieres salir?';
   }
 
   @override
@@ -55,7 +55,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pleaseSelectLanguage =>
-      'Por favor, selecciona tu idioma preferido.';
+      'Por favor selecciona tu idioma preferido.';
 
   @override
   String get languageChangedTo => 'Idioma cambiado a';
@@ -79,22 +79,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get size => 'tamaño';
 
   @override
-  String get date => 'date';
+  String get date => 'fecha';
 
   @override
-  String get name => 'name';
+  String get name => 'nombre';
 
   @override
-  String get largestSize => 'largest size';
+  String get largestSize => 'tamaño más grande';
 
   @override
-  String get refresh => 'Refresh';
+  String get refresh => 'Actualizar';
 
   @override
-  String get recent => 'Recientes';
+  String get recent => 'Reciente';
 
   @override
-  String get download => 'Descargas';
+  String get download => 'Descargar';
 
   @override
   String remainingPhotos(Object count) {
@@ -109,24 +109,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingDesc1 =>
-      'Administra tus fotos fácilmente con Gallery Cleaner, elimina las innecesarias y refresca tu galería.';
+      'Gestiona tus fotos fácilmente con Limpiador de Galería, elimina las innecesarias y refresca tu galería.';
 
   @override
-  String get onboardingTitle2 => 'Fácil de usar';
+  String get onboardingTitle2 => 'Fácil de Usar';
 
   @override
   String get onboardingDesc2 =>
-      'Desliza a la derecha para guardar fotos, a la izquierda para marcar para eliminar. ¡Eso es todo!';
+      'Desliza a la derecha para guardar fotos, desliza a la izquierda para marcar para eliminar. ¡Eso es todo!';
 
   @override
-  String get onboardingTitle3 => 'La privacidad es nuestra prioridad';
+  String get onboardingTitle3 => 'La Privacidad es Nuestra Prioridad';
 
   @override
   String get onboardingDesc3 =>
       'La aplicación solo accede a tu galería con tu permiso y no comparte ningún dato.';
 
   @override
-  String get duplicatePhotos => 'Fotos duplicadas';
+  String get duplicatePhotos => 'Fotos Duplicadas';
 
   @override
   String get previewOfDuplicatePhotos => 'Vista previa de fotos duplicadas';
@@ -135,36 +135,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deleteAllDuplicates => 'Eliminar todos los duplicados';
 
   @override
-  String get confirmDeletion => 'Confirmar eliminación';
+  String get confirmDeletion => 'Confirmar Eliminación';
 
   @override
   String get confirmDeleteAllDuplicates =>
-      '¿Estás seguro de que deseas eliminar todas las fotos duplicadas? Esta acción no se puede deshacer.';
+      '¿Estás seguro de que quieres eliminar todas las fotos duplicadas? Esta acción no se puede deshacer.';
 
   @override
-  String get deleteAll => 'Eliminar todo';
+  String get deleteAll => 'Eliminar Todo';
 
   @override
   String get allDuplicatesDeleted => 'Todos los duplicados eliminados.';
 
   @override
-  String get skipThisStep => 'Omitir este paso';
+  String get skipThisStep => 'Saltar este paso';
 
   @override
-  String get skip => 'Omitir';
+  String get skip => 'Saltar';
 
   @override
   String get duplicatePreviewInfo =>
-      'La primera foto de cada grupo se mantendrá. Todas las demás serán eliminadas.';
+      'La primera foto en cada grupo se mantendrá. Todas las demás serán eliminadas.';
 
   @override
-  String get analyzeGallery => 'Analizar galería';
+  String get analyzeGallery => 'Analizar Galería';
 
   @override
   String get galleryAnalysisCompleted => 'Análisis de galería completado';
 
   @override
-  String get gallerySlogan => 'Aligera tu galería de fotos';
+  String get gallerySlogan => 'Swifty: Limpia Tu Galería';
 
   @override
   String get darkTheme => 'Tema Oscuro';
@@ -174,7 +174,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String exitReviewDialog(Object label, Object remaining) {
-    return 'Estás a punto de salir sin revisar todas las $label. Restantes: $remaining $label. Si regresas, tendrás que empezar de nuevo. ¿Quieres salir?';
+    return 'Estás a punto de salir sin revisar todos los $label. Restantes: $remaining $label. Si regresas, tendrás que empezar de nuevo. ¿Quieres salir?';
   }
 
   @override
@@ -191,4 +191,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get noDuplicatesFound =>
       'No se encontraron fotos duplicadas en esta carpeta.';
+
+  @override
+  String get recentlyDeletedTitle => 'Eliminados Recientemente';
+
+  @override
+  String recentlyDeletedMessage(Object count) {
+    return '$count elementos han sido eliminados y movidos al álbum \"Eliminados Recientemente\". Estos elementos permanecerán allí durante 30 días y luego serán eliminados permanentemente de forma automática.';
+  }
+
+  @override
+  String get zoomHint => 'Pellizcar para hacer zoom';
+
+  @override
+  String get zoomHintDescription =>
+      'Usa dos dedos para hacer zoom en las fotos para una mejor visualización';
 }

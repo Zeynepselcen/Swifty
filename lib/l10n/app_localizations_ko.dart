@@ -185,4 +185,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get noDuplicatesFound => '이 폴더에서 중복 사진을 찾을 수 없습니다.';
+
+  @override
+  String get recentlyDeletedTitle => '최근 삭제됨';
+
+  @override
+  String recentlyDeletedMessage(Object count) {
+    return '$count개 항목이 삭제되어 \"최근 삭제됨\" 앨범으로 이동되었습니다. 이 항목들은 30일 동안 거기에 유지되며 그 후 자동으로 영구 삭제됩니다.';
+  }
+
+  @override
+  String get zoomHint => '확대하려면 핀치하세요';
+
+  @override
+  String get zoomHintDescription => '더 나은 보기를 위해 두 손가락으로 사진을 확대하고 축소할 수 있습니다';
 }

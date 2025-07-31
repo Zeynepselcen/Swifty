@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../services/gallery_service.dart';
 import '../models/photo_item.dart';
 import 'package:intl/intl.dart';
+import '../widgets/debounced_button.dart'; // DebouncedButton import
 
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:flutter/foundation.dart';
@@ -538,12 +539,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     for (final album in albums) {
       futures.add(() async {
         try {
-          final count = await album.assetCountAsync;
+        final count = await album.assetCountAsync;
           print('DEBUG: Albüm ${album.name} - ${count} ${_isVideoMode ? "video" : "fotoğraf"}');
           if (count == 0) return null; // Skip empty albums
-          
+        
           // Sadece tarih bilgisini al, thumbnail'i sonra yükle
-          final latestDate = await _getLatestAssetDate(album);
+        final latestDate = await _getLatestAssetDate(album);
           return _AlbumWithCount(album: album, count: count, latestDate: latestDate);
         } catch (e) {
           print('DEBUG: Albüm ${album.name} işleme hatası: $e');
@@ -569,7 +570,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     // Performans optimizasyonu: Sadece albüm listesi için gerekli değil
     // Bu fonksiyonu kaldır veya sadece gerektiğinde çağır
     _allPhotos = [];
-    _photosByMonth = {};
+      _photosByMonth = {};
     
     setState(() { _loadingPhotos = false; });
     print('DEBUG: _fetchAllPhotosInternal bitti - Performans için kaldırıldı');
@@ -744,10 +745,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     print('DEBUG: _openAlbum çağrıldı - Video modu: $_isVideoMode, Albüm: ${album.album.name}');
     
     // Video modunda albüm kontrolü kaldırıldı - her durumda açmaya çalış
-    _openAlbumDirectly(album.album);
+    await _openAlbumDirectly(album.album);
   }
 
-  void _openAlbumDirectly(AssetPathEntity album) async {
+  Future<void> _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
     try {
@@ -759,9 +760,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       final photoItems = await _loadAssetsDirectly(album, totalCount);
       
       print('DEBUG: ${photoItems.length} PhotoItem oluşturuldu');
-      
+    
       if (photoItems.isNotEmpty) {
-        Navigator.of(context).push(
+        await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => GalleryCleanerScreen(
               albumId: album.id,
@@ -1305,23 +1306,28 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               ),
                             );
                           },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.10),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ListTile(
-                              leading: _buildAlbumThumbnail(album.album),
-                              title: Text(
-                                album.album.name,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          child: DebouncedButton(
+                            onPressed: () async {
+                              await _openAlbumDirectly(album.album);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              subtitle: Text(
-                                '${album.count} ${appLoc.photos}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 15),
+                              child: ListTile(
+                                leading: _buildAlbumThumbnail(album.album),
+                                title: Text(
+                                  album.album.name,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                                subtitle: Text(
+                                  '${album.count} ${appLoc.photos}',
+                                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                                ),
+                                onTap: null, // DebouncedButton üstte olduğu için null
                               ),
-                              onTap: () => _openAlbum(album),
                             ),
                           ),
                         );
@@ -1515,6 +1521,26 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   Future<void> _fetchAllPhotos() async {
     await _loadAllData();
+  }
+
+  bool _isAlbumOpening = false;
+
+  void _onAlbumTap(_AlbumWithCount album) async {
+    if (_isAlbumOpening) return;
+    _isAlbumOpening = true;
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GalleryCleanerScreen(
+            albumId: album.album.id,
+            albumName: album.album.name,
+          ),
+        ),
+      );
+    } finally {
+      _isAlbumOpening = false;
+    }
   }
 } // _GalleryAlbumListScreenState'in kapanışı
 

@@ -140,27 +140,73 @@ class GalleryService {
   }
 
   static Future<List<PhotoItem>> loadPhotos({int? limit}) async {
-    final List<PhotoItem> result = [];
+    List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
-    for (final album in albums) {
-      final photos = await album.getAssetListPaged(page: 0, size: 1000);
-      for (final asset in photos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
-        String? path;
-        final file = await asset.file;
-        if (file != null) path = file.path;
-        if (thumb != null) {
-          final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.image, path: path));
-        }
-        if (limit != null && result.length >= limit) {
-          return result;
+    
+    // Tüm albümleri paralel olarak işle
+    final albumFutures = albums.map((album) async {
+      final List<PhotoItem> albumResult = [];
+      
+      // Her albüm için batch loading kullan
+      final totalCount = await album.assetCountAsync;
+      final batchSize = 200; // Optimal batch size - hızlı ve stabil
+      final totalBatches = (totalCount / batchSize).ceil();
+      
+      for (int page = 0; page < totalBatches; page++) {
+        final photos = await album.getAssetListPaged(page: page, size: batchSize);
+        
+        // Her batch'i paralel olarak işle
+        final futures = photos.map((asset) async {
+          try {
+            // Thumbnail boyutunu küçült (daha hızlı yükleme)
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+            String? path;
+            
+            // Path'i paralel olarak al
+            final pathFuture = asset.file.then((file) => file?.path);
+            path = await pathFuture;
+            
+            if (thumb != null) {
+              final hash = md5.convert(thumb).toString();
+              return PhotoItem(
+                id: asset.id, 
+                thumb: thumb, 
+                date: asset.createDateTime, 
+                hash: hash, 
+                type: MediaType.image, 
+                path: path
+              );
+            }
+          } catch (e) {
+            print('Fotoğraf yükleme hatası: $e');
+          }
+          return null;
+        });
+        
+        final batchResults = await Future.wait(futures);
+        albumResult.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+        
+        // Limit kontrolü
+        if (limit != null && albumResult.length >= limit) {
+          return albumResult.take(limit).toList();
         }
       }
+      
+      return albumResult;
+    });
+    
+    // Tüm albümleri paralel olarak yükle
+    final allAlbumResults = await Future.wait(albumFutures);
+    
+    // Sonuçları birleştir
+    for (final albumResult in allAlbumResults) {
+      result.addAll(albumResult);
       if (limit != null && result.length >= limit) {
-        return result;
+        result = result.take(limit).toList();
+        break;
       }
     }
+    
     result.shuffle();
     return result;
   }
@@ -175,15 +221,46 @@ class GalleryService {
       album = null;
     }
     if (album != null) {
-      final photos = await album.getAssetListPaged(page: 0, size: 1000);
-      for (final asset in photos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
-        String? path;
-        final file = await asset.file;
-        if (file != null) path = file.path;
-        if (thumb != null) {
-          final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.image, path: path));
+      // Önce toplam fotoğraf sayısını al
+      final totalCount = await album.assetCountAsync;
+      
+      // Büyük galeriler için batch loading
+      final batchSize = 50; // Her seferde 50 fotoğraf yükle
+      final totalBatches = (totalCount / batchSize).ceil();
+      
+      for (int page = 0; page < totalBatches; page++) {
+        final photos = await album.getAssetListPaged(page: page, size: batchSize);
+        
+        // Her batch'i paralel olarak işle
+        final futures = photos.map((asset) async {
+          try {
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+            String? path;
+            final file = await asset.file;
+            if (file != null) path = file.path;
+            if (thumb != null) {
+              final hash = md5.convert(thumb).toString();
+              return PhotoItem(
+                id: asset.id, 
+                thumb: thumb, 
+                date: asset.createDateTime, 
+                hash: hash, 
+                type: MediaType.image, 
+                path: path
+              );
+            }
+          } catch (e) {
+            print('Fotoğraf yükleme hatası: $e');
+          }
+          return null;
+        });
+        
+        final batchResults = await Future.wait(futures);
+        result.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+        
+        // UI'ı güncellemek için kısa bir bekleme
+        if (page < totalBatches - 1) {
+          await Future.delayed(const Duration(milliseconds: 10));
         }
       }
     }
@@ -191,27 +268,73 @@ class GalleryService {
   }
 
   static Future<List<PhotoItem>> loadVideos({int? limit}) async {
-    final List<PhotoItem> result = [];
+    List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
-    for (final album in albums) {
-      final videos = await album.getAssetListPaged(page: 0, size: 1000);
-      for (final asset in videos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
-        String? path;
-        final file = await asset.file;
-        if (file != null) path = file.path;
-        if (thumb != null) {
-          final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video, path: path));
-        }
-        if (limit != null && result.length >= limit) {
-          return result;
+    
+    // Tüm albümleri paralel olarak işle
+    final albumFutures = albums.map((album) async {
+      final List<PhotoItem> albumResult = [];
+      
+      // Her albüm için batch loading kullan
+      final totalCount = await album.assetCountAsync;
+      final batchSize = 200; // Optimal batch size - hızlı ve stabil
+      final totalBatches = (totalCount / batchSize).ceil();
+      
+      for (int page = 0; page < totalBatches; page++) {
+        final videos = await album.getAssetListPaged(page: page, size: batchSize);
+        
+        // Her batch'i paralel olarak işle
+        final futures = videos.map((asset) async {
+          try {
+            // Thumbnail boyutunu küçült (daha hızlı yükleme)
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+            String? path;
+            
+            // Path'i paralel olarak al
+            final pathFuture = asset.file.then((file) => file?.path);
+            path = await pathFuture;
+            
+            if (thumb != null) {
+              final hash = md5.convert(thumb).toString();
+              return PhotoItem(
+                id: asset.id, 
+                thumb: thumb, 
+                date: asset.createDateTime, 
+                hash: hash, 
+                type: MediaType.video, 
+                path: path
+              );
+            }
+          } catch (e) {
+            print('Video yükleme hatası: $e');
+          }
+          return null;
+        });
+        
+        final batchResults = await Future.wait(futures);
+        albumResult.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+        
+        // Limit kontrolü
+        if (limit != null && albumResult.length >= limit) {
+          return albumResult.take(limit).toList();
         }
       }
+      
+      return albumResult;
+    });
+    
+    // Tüm albümleri paralel olarak yükle
+    final allAlbumResults = await Future.wait(albumFutures);
+    
+    // Sonuçları birleştir
+    for (final albumResult in allAlbumResults) {
+      result.addAll(albumResult);
       if (limit != null && result.length >= limit) {
-        return result;
+        result = result.take(limit).toList();
+        break;
       }
     }
+    
     result.shuffle();
     return result;
   }
