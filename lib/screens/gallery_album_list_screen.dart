@@ -807,8 +807,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
       if (assets.isEmpty) break;
       
-      // Batch işleme - daha büyük gruplar halinde
-      final batchSize = 100; // Her seferde 100 asset işle
+      // Batch işleme - daha küçük gruplar halinde (daha hızlı)
+      final batchSize = 25; // 100'den 25'e düşürüldü - daha hızlı işlem
       final batches = <List<AssetEntity>>[];
       
       for (int i = 0; i < assets.length; i += batchSize) {
@@ -834,8 +834,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           }
         }
         
-        // Her batch sonrası kısa bekleme (UI responsive tutmak için)
-        await Future.delayed(const Duration(milliseconds: 5));
+        // Her batch sonrası çok kısa bekleme (daha hızlı yükleme için)
+        await Future.delayed(const Duration(milliseconds: 2));
       }
       
       currentPage++;
