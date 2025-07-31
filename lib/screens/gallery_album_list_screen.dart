@@ -9,7 +9,7 @@ import '../models/photo_item.dart';
 import 'package:intl/intl.dart';
 import '../widgets/debounced_button.dart'; // DebouncedButton import
 
-import 'package:google_ml_kit/google_ml_kit.dart';
+
 import 'package:flutter/foundation.dart';
 
 import 'video_player_screen.dart';
@@ -576,53 +576,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     print('DEBUG: _fetchAllPhotosInternal bitti - Performans için kaldırıldı');
   }
 
-  Future<Map<String, dynamic>> _analyzePhotosIsolate(Map<String, dynamic> params) async {
-    final List<PhotoItem> photos = params['photos'];
-    final Map<String, dynamic> cache = params['cache'];
-    final double confidenceThreshold = params['confidenceThreshold'] ?? 0.4;
-    final Map<String, dynamic> result = {};
-    final imageLabeler = GoogleMlKit.vision.imageLabeler(ImageLabelerOptions(confidenceThreshold: confidenceThreshold));
-    for (int i = 0; i < photos.length; i++) {
-      final photo = photos[i];
-      final cached = cache[photo.id];
-      String hash = photo.hash;
-      List<String> labels = [];
-      int fileSize = 0;
-      bool needsAnalysis = true;
-      if (cached != null && cached['hash'] == hash && cached['labels'] != null && cached['size'] != null) {
-        labels = List<String>.from(cached['labels']);
-        fileSize = cached['size'];
-        needsAnalysis = false;
-      }
-      if (needsAnalysis) {
-        try {
-          final filePath = photo.path;
-          if (filePath == null || filePath.isEmpty) continue;
-          final inputImage = InputImage.fromFilePath(filePath);
-          final detectedLabels = await imageLabeler.processImage(inputImage);
-          labels = detectedLabels.map((l) => l.label.toLowerCase()).toList();
-          print('Photo ${photo.id} labels: $labels');
-          fileSize = await GalleryService.getAndroidFileSize(filePath);
-        } catch (e) {
-          // Hata durumunda boş bırak
-        }
-      }
-      result[photo.id] = {
-        'labels': labels,
-        'hash': hash,
-        'size': fileSize,
-      };
-      // Her 10 fotoğrafta bir kısa bekleme ekle (performans için)
-      if (i % 10 == 0) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
-      // Analiz ilerlemesini ve kalan fotoğraf sayısını güncelle
-      final progress = (i + 1) / photos.length;
-      params['progressCallback']?.call(progress, photos.length - (i + 1));
-    }
-    await imageLabeler.close();
-    return result;
-  }
+
 
   Future<void> _labelAllPhotos({bool forceRefresh = false}) async {
     // Analiz kısmı geçici olarak devre dışı bırakıldı - performans sorunu nedeniyle
