@@ -139,6 +139,60 @@ class GalleryService {
     }
   }
 
+  // Aylık gruplama için yardımcı fonksiyon
+  static String _getMonthYearString(DateTime date) {
+    final months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  // Fotoğrafları aylara göre grupla
+  static Map<String, List<PhotoItem>> groupPhotosByMonth(List<PhotoItem> photos) {
+    final Map<String, List<PhotoItem>> grouped = {};
+    final months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    
+    for (final photo in photos) {
+      final monthKey = _getMonthYearString(photo.date);
+      if (!grouped.containsKey(monthKey)) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey]!.add(photo);
+    }
+    
+    // Her ay içindeki fotoğrafları random sırala
+    for (final key in grouped.keys) {
+      grouped[key]!.shuffle();
+    }
+    
+    // Ayları tarih sırasına göre sırala (en yeni önce)
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final aMonth = a.split(' ')[0];
+        final aYear = a.split(' ')[1];
+        final aMonthIndex = months.indexOf(aMonth) + 1;
+        final aDate = DateTime.parse('$aYear-${aMonthIndex.toString().padLeft(2, '0')}-01');
+
+        final bMonth = b.split(' ')[0];
+        final bYear = b.split(' ')[1];
+        final bMonthIndex = months.indexOf(bMonth) + 1;
+        final bDate = DateTime.parse('$bYear-${bMonthIndex.toString().padLeft(2, '0')}-01');
+
+        return bDate.compareTo(aDate);
+      });
+    
+    final sortedMap = <String, List<PhotoItem>>{};
+    for (final key in sortedKeys) {
+      sortedMap[key] = grouped[key]!;
+    }
+    
+    return sortedMap;
+  }
+
   static Future<List<PhotoItem>> loadPhotos({int? limit}) async {
     List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.image);

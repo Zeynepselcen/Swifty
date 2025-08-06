@@ -237,7 +237,7 @@ abstract class AppLocalizations {
   /// No description provided for @date.
   ///
   /// In en, this message translates to:
-  /// **'date'**
+  /// **'Date'**
   String get date;
 
   /// No description provided for @name.
@@ -257,6 +257,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh'**
   String get refresh;
+
+  /// No description provided for @folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get folder;
 
   /// No description provided for @recent.
   ///

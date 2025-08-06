@@ -22,6 +22,12 @@ enum AlbumSortType {
   filesize,
 }
 
+// Görünüm türleri için enum
+enum ViewType {
+  folder, // Klasör görünümü
+  date,   // Tarih görünümü
+}
+
 class GalleryAlbumListScreen extends StatefulWidget {
   final Locale? currentLocale;
   final void Function(Locale)? onLocaleChanged;
@@ -42,10 +48,16 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   bool _isPhotoDataLoaded = false;
   bool _isVideoDataLoaded = false;
   AlbumSortType _sortType = AlbumSortType.size;
+  ViewType _viewType = ViewType.folder; // Varsayılan olarak klasör görünümü
   late String _selectedLanguage;
   List<PhotoItem> _allPhotos = [];
   Map<String, List<PhotoItem>> _photosByMonth = {};
   bool _loadingPhotos = true;
+  
+  // Güncelleme kontrolü için
+  DateTime _lastUpdateTime = DateTime.now();
+  bool _isRefreshing = false;
+  int _forceReloadCounter = 0; // Hot reload için zorlama sayacı
 
   // Analiz state değişkenleri
   bool _analysisStarted = false;
@@ -393,6 +405,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     if (selected != null && selected != _currentLocale.languageCode) {
       setState(() {
         _currentLocale = Locale(selected);
+        _forceReloadCounter++; // Hot reload için zorlama
       });
       widget.onLocaleChanged?.call(Locale(selected));
       try {
@@ -401,6 +414,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${appLoc.languageChangedTo} ${_languages[selected]}')),
       );
+      
+      // Dil değişikliği sonrası UI'ı zorla yenile
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _forceReloadCounter++;
+          });
+        }
+      });
     }
   }
 
@@ -444,6 +466,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     _selectedLanguage = widget.currentLocale?.languageCode ?? 'tr';
     _currentLocale = widget.currentLocale ?? const Locale('tr');
     _initializeApp();
+    // Hot reload için zorlama
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _forceReloadCounter++;
+        });
+        // TEST: Popup mesaj kaldırıldı
+      }
+    });
   }
 
 
@@ -518,6 +549,91 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     print('DEBUG: _loadAllData bitti');
   }
 
+  // Güncelleme kontrolü fonksiyonu
+  Future<bool> _shouldRefreshData() async {
+    try {
+      final albums = await PhotoManager.getAssetPathList(type: _isVideoMode ? RequestType.video : RequestType.image);
+      if (albums.length != _albums.length) {
+        return true; // Albüm sayısı değişmiş
+      }
+      
+      // Albüm içeriklerini kontrol et
+      for (final album in albums) {
+        final count = await album.assetCountAsync;
+        final existingAlbum = _albums.firstWhere(
+          (a) => a.album.id == album.id,
+          orElse: () => _AlbumWithCount(album: album, count: 0, latestDate: DateTime.now()),
+        );
+        
+        if (count != existingAlbum.count) {
+          return true; // İçerik değişmiş
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      print('DEBUG: Güncelleme kontrolü hatası: $e');
+      return true; // Hata durumunda yenile
+    }
+  }
+
+  // Veri yenileme fonksiyonu
+
+
+  Future<void> _refreshData() async {
+    if (_isRefreshing) return;
+    
+    if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+      });
+    }
+    
+    try {
+      // Zorla yenileme - her zaman yenile
+      print('DEBUG: Zorla yenileme başlatılıyor...');
+      _forceReloadCounter++; // Hot reload için zorlama
+      await _loadAllData();
+      
+      // Aylık görünümde fotoğrafları da yenile
+      if (_viewType == ViewType.date) {
+        _photosByMonth.clear();
+        if (mounted) {
+          setState(() {});
+        }
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Galeri yenilendi'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('DEBUG: Yenileme hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Yenileme hatası: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+              if (mounted) {
+          setState(() {
+            _isRefreshing = false;
+            _lastUpdateTime = DateTime.now();
+            _forceReloadCounter++; // Hot reload için zorlama
+          });
+        }
+    }
+  }
+
   Future<void> _fetchAlbumsInternal() async {
     print('DEBUG: _fetchAlbumsInternal başladı - Video modu: $_isVideoMode');
     final permission = await PhotoManager.requestPermissionExtend();
@@ -559,6 +675,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     
     setState(() {
       _albums = albumList;
+      _lastUpdateTime = DateTime.now();
     });
     print('DEBUG: _fetchAlbumsInternal bitti - ${albumList.length} albüm yüklendi');
   }
@@ -1136,212 +1253,541 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                   child: Row(
                     children: [
                       // DropdownButton yerine PopupMenuButton ile modern ve özel menü:
-                      PopupMenuButton<AlbumSortType>(
-                        onSelected: (AlbumSortType newValue) {
-                          setState(() {
-                            _sortType = newValue;
-                          });
-                        },
-                        color: const Color(0xFF1B2A4D), // Koyu arka plan
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: AlbumSortType.size,
-                            child: Text(
-                              appLoc.size, 
-                              style: TextStyle(
-                                color: Colors.white, 
-                                fontWeight: _sortType == AlbumSortType.size ? FontWeight.w700 : FontWeight.w500,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: AlbumSortType.date,
-                            child: Text(
-                              appLoc.date, 
-                              style: TextStyle(
-                                color: Colors.white, 
-                                fontWeight: _sortType == AlbumSortType.date ? FontWeight.w700 : FontWeight.w500,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: AlbumSortType.name,
-                            child: Text(
-                              appLoc.name, 
-                              style: TextStyle(
-                                color: Colors.white, 
-                                fontWeight: _sortType == AlbumSortType.name ? FontWeight.w700 : FontWeight.w500,
-                                fontSize: 16,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.white, width: 1.5),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _sortType == AlbumSortType.size
-                                    ? appLoc.size
-                                    : _sortType == AlbumSortType.date
-                                        ? appLoc.date
-                                        : appLoc.name,
-                                style: const TextStyle(
+                      Flexible(
+                        child: PopupMenuButton<AlbumSortType>(
+                          onSelected: (AlbumSortType newValue) {
+                            setState(() {
+                              _sortType = newValue;
+                            });
+                          },
+                          color: const Color(0xFF1B2A4D), // Koyu arka plan
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: AlbumSortType.size,
+                              child: Text(
+                                appLoc.size, 
+                                style: TextStyle(
                                   color: Colors.white, 
-                                  fontWeight: FontWeight.w700, 
-                                  fontSize: 18,
-                                  letterSpacing: 0.8,
+                                  fontWeight: _sortType == AlbumSortType.size ? FontWeight.w700 : FontWeight.w500,
+                                  fontSize: 16,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_drop_down, color: Colors.white),
-                            ],
+                            ),
+                            PopupMenuItem(
+                              value: AlbumSortType.date,
+                              child: Text(
+                                appLoc.date, 
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontWeight: _sortType == AlbumSortType.date ? FontWeight.w700 : FontWeight.w500,
+                                  fontSize: 16,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: AlbumSortType.name,
+                              child: Text(
+                                appLoc.name, 
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontWeight: _sortType == AlbumSortType.name ? FontWeight.w700 : FontWeight.w500,
+                                  fontSize: 16,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    _sortType == AlbumSortType.size
+                                        ? appLoc.size
+                                        : _sortType == AlbumSortType.date
+                                            ? appLoc.date
+                                            : appLoc.name,
+                                    style: const TextStyle(
+                                      color: Colors.white, 
+                                      fontWeight: FontWeight.w700, 
+                                      fontSize: 16,
+                                      letterSpacing: 0.8,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_drop_down, color: Colors.white),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
-                        onPressed: _fetchAlbums,
-                        tooltip: appLoc.refresh,
-                      ),
-                    ],
-                  ),
-                ),
-                // Albüm listesi (klasör kartları)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: ListView.builder(
-                      physics: const FastScrollPhysics(),
-                      itemCount: _sortedAlbums.length,
-                      itemBuilder: (context, idx) {
-                        final album = _sortedAlbums[idx];
-                        return Dismissible(
-                          key: Key(album.album.id),
-                          direction: DismissDirection.endToStart, // Sağdan sola kaydırma
-                          background: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Align(
-                              alignment: Alignment.centerRight,
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 20),
-                                child: Icon(
-                                  Icons.delete,
+                      const SizedBox(width: 12),
+                      // Görünüm seçenekleri
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Klasör görünümü butonu
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _viewType = ViewType.folder;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _viewType == ViewType.folder 
+                                    ? Colors.white.withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
                                   color: Colors.white,
-                                  size: 32,
+                                  width: _viewType == ViewType.folder ? 2 : 1,
                                 ),
                               ),
-                            ),
-                          ),
-                          confirmDismiss: (direction) async {
-                            // Silme onayı
-                            return await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(appLoc.confirmDeletion),
-                                content: Text('${album.album.name} klasörünü silmek istediğinize emin misiniz?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).pop(false),
-                                    child: Text(appLoc.cancel),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.folder,
+                                    color: Colors.white,
+                                    size: 14,
                                   ),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.of(context).pop(true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                    ),
-                                    child: Text(
-                                      appLoc.deleteAll,
-                                      style: const TextStyle(color: Colors.white),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    appLoc.folder,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: _viewType == ViewType.folder 
+                                          ? FontWeight.bold 
+                                          : FontWeight.normal,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                          onDismissed: (direction) async {
-                            // Klasörü gerçekten sil
-                            try {
-                              await PhotoManager.editor.deleteWithIds([album.album.id]);
-                              print('DEBUG: Klasör silindi: ${album.album.name}');
-                            } catch (e) {
-                              print('DEBUG: Klasör silme hatası: $e');
-                            }
-                            
-                            // Listeyi yeniden yükle
-                            await _loadAllData();
-                            
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${album.album.name} silindi'),
-                                backgroundColor: Colors.red,
-                                action: SnackBarAction(
-                                  label: 'Geri Al',
-                                  textColor: Colors.white,
-                                  onPressed: () {
-                                    // Geri alma işlemi (şimdilik sadece mesaj)
-                                    final appLoc = AppLocalizations.of(context)!;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(appLoc.undoFeatureComingSoon),
-                                        backgroundColor: Colors.blue,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                          child: DebouncedButton(
-                            onPressed: () async {
-                              await _openAlbumDirectly(album.album);
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Tarih görünümü butonu
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _viewType = ViewType.date;
+                              });
                             },
                             child: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.10),
-                                borderRadius: BorderRadius.circular(16),
+                                color: _viewType == ViewType.date 
+                                    ? Colors.white.withOpacity(0.3)
+                                    : Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: _viewType == ViewType.date ? 2 : 1,
+                                ),
                               ),
-                              child: ListTile(
-                                leading: _buildAlbumThumbnail(album.album),
-                                title: Text(
-                                  album.album.name,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                                ),
-                                subtitle: Text(
-                                  '${album.count} ${appLoc.photos}',
-                                  style: const TextStyle(color: Colors.white70, fontSize: 15),
-                                ),
-                                onTap: null, // DebouncedButton üstte olduğu için null
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    appLoc.date,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: _viewType == ViewType.date 
+                                          ? FontWeight.bold 
+                                          : FontWeight.normal,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white, size: 24),
+                        onPressed: () {
+                          _forceReloadCounter++;
+                          _refreshData();
+                        },
+                        tooltip: appLoc.refresh,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Albüm listesi (klasör kartları veya aylık gruplama)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _viewType == ViewType.folder 
+                        ? _buildFolderView()
+                        : _buildMonthlyView(),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Klasör görünümü
+  Widget _buildFolderView() {
+    final appLoc = AppLocalizations.of(context)!;
+    return ListView.builder(
+      physics: const FastScrollPhysics(),
+      itemCount: _sortedAlbums.length,
+      itemBuilder: (context, idx) {
+        final album = _sortedAlbums[idx];
+        return Dismissible(
+          key: Key(album.album.id),
+          direction: DismissDirection.endToStart, // Sağdan sola kaydırma
+          background: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: EdgeInsets.only(right: 20),
+                child: Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
+          ),
+          confirmDismiss: (direction) async {
+            // Silme onayı
+            return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(appLoc.confirmDeletion),
+                content: Text('${album.album.name} klasörünü silmek istediğinize emin misiniz?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(appLoc.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Text(
+                      appLoc.deleteAll,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          onDismissed: (direction) async {
+            // Klasörü gerçekten sil
+            try {
+              await PhotoManager.editor.deleteWithIds([album.album.id]);
+              print('DEBUG: Klasör silindi: ${album.album.name}');
+            } catch (e) {
+              print('DEBUG: Klasör silme hatası: $e');
+            }
+            
+            // Listeyi yeniden yükle
+            await _loadAllData();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${album.album.name} silindi'),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'Geri Al',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Geri alma işlemi (şimdilik sadece mesaj)
+                    final appLoc = AppLocalizations.of(context)!;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(appLoc.undoFeatureComingSoon),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+          child: DebouncedButton(
+            onPressed: () async {
+              await _openAlbumDirectly(album.album);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListTile(
+                leading: _buildAlbumThumbnail(album.album),
+                title: Text(
+                  album.album.name,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                subtitle: Text(
+                  '${album.count} ${appLoc.photos}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                onTap: null, // DebouncedButton üstte olduğu için null
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Aylık görünüm - Klasör formatında
+  Widget _buildMonthlyView() {
+    if (_photosByMonth.isEmpty) {
+      return FutureBuilder<List<PhotoItem>>(
+        future: GalleryService.loadPhotos(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
+          }
+          
+          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            // Fotoğrafları aylara göre grupla
+            final groupedPhotos = GalleryService.groupPhotosByMonth(snapshot.data!);
+            _photosByMonth = groupedPhotos;
+            
+            return ListView.builder(
+              physics: const FastScrollPhysics(),
+              itemCount: groupedPhotos.length,
+              itemBuilder: (context, idx) {
+                final monthKey = groupedPhotos.keys.elementAt(idx);
+                final photos = groupedPhotos[monthKey]!;
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    leading: _buildMonthThumbnail(photos),
+                    title: Text(
+                      monthKey,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${photos.length} fotoğraf',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                    onTap: () {
+                      // Ay klasörüne tıklandığında fotoğrafları göster
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GalleryCleanerScreen(
+                            albumId: monthKey,
+                            photos: photos,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          }
+          
+          return const Center(
+            child: Text(
+              'Fotoğraf bulunamadı',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        },
+      );
+    }
+    
+    // Zaten yüklenmiş verileri göster
+    return ListView.builder(
+      physics: const FastScrollPhysics(),
+      itemCount: _photosByMonth.length,
+      itemBuilder: (context, idx) {
+        final monthKey = _photosByMonth.keys.elementAt(idx);
+        final photos = _photosByMonth[monthKey]!;
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ListTile(
+            leading: _buildMonthThumbnail(photos),
+            title: Text(
+              monthKey,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            subtitle: Text(
+              '${photos.length} fotoğraf',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white70,
+              size: 16,
+            ),
+            onTap: () {
+              // Ay klasörüne tıklandığında fotoğrafları göster
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GalleryCleanerScreen(
+                    albumId: monthKey,
+                    photos: photos,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // Ay klasörü için thumbnail oluştur
+  Widget _buildMonthThumbnail(List<PhotoItem> photos) {
+    if (photos.isEmpty) {
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.calendar_today, color: Colors.white, size: 24),
+      );
+    }
+    
+    // İlk 4 fotoğrafı göster
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withOpacity(0.1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: [
+            // İlk fotoğraf (arka plan)
+            if (photos.isNotEmpty)
+              Positioned.fill(
+                child: Image.memory(
+                  photos[0].thumb,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            // İkinci fotoğraf (sağ üst köşe)
+            if (photos.length > 1)
+              Positioned(
+                top: 2,
+                right: 2,
+                width: 28,
+                height: 28,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.memory(
+                    photos[1].thumb,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            // Üçüncü fotoğraf (sol alt köşe)
+            if (photos.length > 2)
+              Positioned(
+                bottom: 2,
+                left: 2,
+                width: 28,
+                height: 28,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.memory(
+                    photos[2].thumb,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            // Dördüncü fotoğraf (sağ alt köşe)
+            if (photos.length > 3)
+              Positioned(
+                bottom: 2,
+                right: 2,
+                width: 28,
+                height: 28,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.memory(
+                    photos[3].thumb,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1353,8 +1799,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return Container(
-            width: 44,
-            height: 44,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
@@ -1367,15 +1813,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             borderRadius: BorderRadius.circular(8),
             child: Image.memory(
               snap.data!,
-              width: 44,
-              height: 44,
+              width: 60,
+              height: 60,
               fit: BoxFit.cover,
             ),
           );
         }
         return Container(
-          width: 44,
-          height: 44,
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -1406,7 +1852,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     
     final future = album.getAssetListPaged(page: 0, size: 1)
         .then((assets) => assets.isNotEmpty 
-            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(80, 80)) 
+            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(200, 200)) 
             : null)
         .whenComplete(() => _loadingThumbnails.remove(album.id));
     

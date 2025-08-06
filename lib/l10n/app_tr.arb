@@ -23,8 +23,11 @@
   "size": "boyut",
   "date": "tarih",
   "name": "isim",
+
   "largestSize": "en büyük boyut",
   "refresh": "Yenile",
+  "folder": "Klasör",
+  "date": "Tarih",
   "recent": "Son",
   "download": "İndir",
   "remainingPhotos": "Kalan fotoğraflar: {count}",

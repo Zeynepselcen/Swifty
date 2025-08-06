@@ -23,8 +23,11 @@
   "size": "size",
   "date": "date",
   "name": "name",
+
   "largestSize": "largest size",
   "refresh": "Refresh",
+  "folder": "Folder",
+  "date": "Date",
   "recent": "Recent",
   "download": "Download",
   "remainingPhotos": "Remaining photos: {count}",

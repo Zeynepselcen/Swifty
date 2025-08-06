@@ -77,16 +77,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get size => '크기';
 
   @override
-  String get date => 'date';
+  String get date => '날짜';
 
   @override
-  String get name => 'name';
+  String get name => '이름';
 
   @override
-  String get largestSize => 'largest size';
+  String get largestSize => '가장 큰 크기';
 
   @override
-  String get refresh => 'Refresh';
+  String get refresh => '새로고침';
+
+  @override
+  String get folder => '폴더';
 
   @override
   String get recent => '최근';
@@ -227,194 +230,190 @@ class AppLocalizationsKo extends AppLocalizations {
   String get undoFeatureComingSoon => '실행 취소 기능이 곧 추가됩니다';
 
   @override
-  String get recentlyDeletedFilesNotFound => 'No deleted files found';
+  String get recentlyDeletedFilesNotFound => '삭제된 파일을 찾을 수 없습니다';
 
   @override
-  String get restoreFile => 'Restore';
+  String get restoreFile => '복원';
 
   @override
-  String get fileDetails => 'File Details';
+  String get fileDetails => '파일 세부사항';
 
   @override
-  String get deletedAt => 'Deleted at';
+  String get deletedAt => '삭제됨';
 
   @override
-  String get timeRemaining => 'Time remaining';
+  String get timeRemaining => '남은 시간';
 
   @override
-  String get close => 'Close';
+  String get close => '닫기';
 
   @override
-  String get fileRestored => 'File restored';
+  String get fileRestored => '파일이 복원되었습니다';
 
   @override
-  String get fileNotFound => 'File not found';
+  String get fileNotFound => '파일을 찾을 수 없습니다';
 
   @override
-  String get restoreError => 'Restore error';
+  String get restoreError => '복원 오류';
 
   @override
-  String get galleryOptions => 'Gallery Options';
+  String get galleryOptions => '갤러리 옵션';
 
   @override
-  String get androidGallery => 'Android Gallery';
+  String get androidGallery => 'Android 갤러리';
 
   @override
-  String get androidGalleryDesc => 'Open your phone\'s own gallery app';
+  String get androidGalleryDesc => '휴대폰의 자체 갤러리 앱 열기';
 
   @override
-  String get recentlyDeleted => 'Recently Deleted';
+  String get recentlyDeleted => '최근 삭제됨';
 
   @override
-  String get recentlyDeletedDesc => 'Open Android\'s own trash';
+  String get recentlyDeletedDesc => 'Android의 자체 휴지통 열기';
 
   @override
-  String get galleryAppNotFound =>
-      'Gallery app could not be opened. You can open the gallery app manually.';
+  String get galleryAppNotFound => '갤러리 앱을 열 수 없습니다. 수동으로 갤러리 앱을 열 수 있습니다.';
 
   @override
   String get trashNotFound =>
-      'Trash could not be opened. You can go to DCIM/.trash folder from file manager manually.';
+      '휴지통을 열 수 없습니다. 파일 관리자에서 DCIM/.trash 폴더로 수동으로 이동할 수 있습니다.';
 
   @override
-  String get restoreFiles => 'Restore Files';
+  String get restoreFiles => '파일 복원';
 
   @override
-  String get restoreFilesQuestion => 'Do you want to restore deleted files?';
+  String get restoreFilesQuestion => '삭제된 파일을 복원하시겠습니까?';
 
   @override
-  String get restoreAll => 'Restore All';
+  String get restoreAll => '모두 복원';
 
   @override
-  String get noFilesToRestore => 'No files to restore';
+  String get noFilesToRestore => '복원할 파일이 없습니다';
 
   @override
-  String get filesRestoredSuccessfully => 'Files restored successfully';
+  String get filesRestoredSuccessfully => '파일이 성공적으로 복원되었습니다';
 
   @override
-  String get exitConfirmation => 'Exit Confirmation';
+  String get exitConfirmation => '종료 확인';
 
   @override
   String exitWithoutReviewing(Object label, Object remaining) {
-    return 'You are about to exit without reviewing all $label. Remaining: $remaining $label. If you go back, you\'ll have to start over. Do you want to exit?';
+    return '모든 $label을(를) 확인하지 않고 종료하려고 합니다. 남은: $remaining $label. 돌아가면 처음부터 다시 시작해야 합니다. 종료하시겠습니까?';
   }
 
   @override
-  String get deleteAndExit => 'Delete and Exit';
+  String get deleteAndExit => '삭제하고 종료';
 
   @override
-  String get exitWithoutDeleting => 'Exit Without Deleting';
+  String get exitWithoutDeleting => '삭제하지 않고 종료';
 
   @override
   String filesMovedToTrash(Object count) {
-    return '$count files moved to \"Recently Deleted\" folder. You can restore them within 30 days from the \"Recently Deleted\" screen.';
+    return '$count개 파일이 \"최근 삭제됨\" 폴더로 이동되었습니다. 30일 동안 \"최근 삭제됨\" 화면에서 복원할 수 있습니다.';
   }
 
   @override
-  String get restore => 'Restore';
+  String get restore => '복원';
 
   @override
-  String get details => 'Details';
+  String get details => '세부사항';
 
   @override
-  String get originalPath => 'Original Path';
+  String get originalPath => '원본 경로';
 
   @override
-  String get trashPath => 'Trash Path';
+  String get trashPath => '휴지통 경로';
 
   @override
-  String get expiresAt => 'Expires at';
+  String get expiresAt => '만료됨';
 
   @override
   String daysRemaining(Object days, Object hours) {
-    return '$days days $hours hours remaining';
+    return '$days일 $hours시간 남음';
   }
 
   @override
   String hoursRemaining(Object hours) {
-    return '$hours hours remaining';
+    return '$hours시간 남음';
   }
 
   @override
-  String get expiringSoon => 'Expiring soon';
+  String get expiringSoon => '곧 만료됨';
 
   @override
-  String get androidTrashFolder => 'Android Trash Folder';
+  String get androidTrashFolder => 'Android 휴지통';
 
   @override
-  String get androidTrashFolderDesc =>
-      'Files moved to Android\'s own trash folder';
+  String get androidTrashFolderDesc => '파일이 Android의 자체 휴지통으로 이동됨';
 
   @override
-  String get appTrashFolder => 'App Trash Folder';
+  String get appTrashFolder => '앱 휴지통';
 
   @override
-  String get appTrashFolderDesc =>
-      'Files moved to app\'s internal trash folder';
+  String get appTrashFolderDesc => '파일이 앱의 내부 휴지통으로 이동됨';
 
   @override
-  String get loading => 'Loading...';
+  String get loading => '로딩 중...';
 
   @override
-  String get loadingPhotos => 'Loading photos...';
+  String get loadingPhotos => '사진 로딩 중...';
 
   @override
-  String get loadingVideos => 'Loading videos...';
+  String get loadingVideos => '비디오 로딩 중...';
 
   @override
-  String get loadingAlbums => 'Loading albums...';
+  String get loadingAlbums => '앨범 로딩 중...';
 
   @override
-  String get pleaseWait => 'Please wait';
+  String get pleaseWait => '잠시 기다려주세요';
 
   @override
-  String get analyzingGallery => 'Analyzing gallery...';
+  String get analyzingGallery => '갤러리 분석 중...';
 
   @override
-  String get processingFiles => 'Processing files...';
+  String get processingFiles => '파일 처리 중...';
 
   @override
-  String get preparingFiles => 'Preparing files...';
+  String get preparingFiles => '파일 준비 중...';
 
   @override
-  String get photoDeleted => 'Photo deleted';
+  String get photoDeleted => '사진이 삭제되었습니다';
 
   @override
-  String get filesRestored => 'Files restored successfully';
+  String get filesRestored => '파일이 성공적으로 복원되었습니다';
 
   @override
-  String get videoLoading => 'Loading video...';
+  String get videoLoading => '비디오 로딩 중...';
 
   @override
-  String get exitReviewDialogTitle => 'Exit Review Screen';
+  String get exitReviewDialogTitle => '검토 화면 종료';
 
   @override
-  String get manageAllFilesPermissionTitle => 'Manage All Files Permission';
+  String get manageAllFilesPermissionTitle => '모든 파일 관리 권한';
 
   @override
-  String get manageAllFilesPermissionDescription =>
-      'Access to all your files is required.';
+  String get manageAllFilesPermissionDescription => '모든 파일에 대한 접근이 필요합니다.';
 
   @override
-  String get goToSettings => 'Go to Settings';
+  String get goToSettings => '설정으로 이동';
 
   @override
-  String get back => 'Back';
+  String get back => '뒤로';
 
   @override
-  String get undo => 'Undo';
+  String get undo => '실행 취소';
 
   @override
-  String get noPhotosFound => 'No photos found in this folder';
+  String get noPhotosFound => '이 폴더에서 사진을 찾을 수 없습니다';
 
   @override
-  String get permissionRequired => 'Permission Required';
+  String get permissionRequired => '권한 필요';
 
   @override
   String get permissionRequiredDescription =>
-      'Permission is required to access your gallery. Please enable it in your device settings.';
+      '갤러리에 접근하려면 권한이 필요합니다. 기기 설정에서 활성화해주세요.';
 
   @override
   String get noAlbumsFoundDescription =>
-      'Gallery access permission granted but no photos or videos found.';
+      '갤러리 접근 권한이 허용되었지만 사진이나 비디오를 찾을 수 없습니다.';
 }

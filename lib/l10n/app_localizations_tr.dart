@@ -78,7 +78,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get size => 'boyut';
 
   @override
-  String get date => 'tarih';
+  String get date => 'Tarih';
 
   @override
   String get name => 'isim';
@@ -88,6 +88,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get refresh => 'Yenile';
+
+  @override
+  String get folder => 'Klasör';
 
   @override
   String get recent => 'Son';

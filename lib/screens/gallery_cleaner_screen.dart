@@ -13,6 +13,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:math'; // Random için eklendi
 
 import 'package:permission_handler/permission_handler.dart'; // HATIRLATMA: Tüm dosya yönetimi izni için eklendi, sorun olursa kaldırabilirsin.
 import 'package:flutter/services.dart'; // Tüm dosya yönetimi izni için eklendi
@@ -126,7 +127,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         } else {
           loadedPhotos = await GalleryService.loadPhotos();
         }
-        loadedPhotos.shuffle();
+        loadedPhotos.shuffle(Random());
         setState(() {
           photos = loadedPhotos;
           isLoading = false;
@@ -160,7 +161,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     } else {
       loadedPhotos = await GalleryService.loadPhotos();
     }
-    loadedPhotos.shuffle();
+    loadedPhotos.shuffle(Random());
     setState(() {
       photos = loadedPhotos;
       isLoading = false;
@@ -194,12 +195,12 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(appLoc?.permissionRequired ?? 'Permission Required'),
-        content: Text(appLoc?.permissionRequiredDescription ?? 'Permission is required to access your gallery. Please enable it in your device settings.'),
+        title: const Text('Permission Required'),
+        content: const Text('Permission is required to access your gallery. Please enable it in your device settings.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(appLoc?.ok ?? 'OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -212,7 +213,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       builder: (context) => AlertDialog(
         title: Text(appLoc?.noAlbumsFound ?? 'Galeri Boş'),
-        content: Text(appLoc?.noAlbumsFoundDescription ?? 'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
+        content: Text(appLoc?.noAlbumsFound ?? 'Galeriye erişim izni verildi ancak hiç ${widget.isVideoMode ? 'video' : 'fotoğraf'} bulunamadı.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -358,11 +359,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(appLoc.photoDeleted),
+            content: Text('$deleted dosya "Son Silinenler" klasörüne taşındı.\n30 gün boyunca geri alabilirsiniz.\nUygulama içi "Son Silinenler" ekranından erişebilirsiniz.'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 6),
             action: SnackBarAction(
-              label: appLoc.restoreFile,
+              label: AppLocalizations.of(context)!.restoreFile,
               textColor: Colors.white,
               onPressed: () => _showRestoreDialog(),
             ),
@@ -445,19 +446,19 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.undoTitle),
-        content: Text(AppLocalizations.of(context)!.undoMessage(deletedPhotos.length)),
+        title: const Text('Son Silinenler'),
+        content: const Text('Silinen dosyaları geri almak istiyor musunuz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-                          child: Text(AppLocalizations.of(context)!.undoCancel),
+                          child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _restoreDeletedFiles();
             },
-                          child: Text(AppLocalizations.of(context)!.undoConfirm),
+                          child: Text(AppLocalizations.of(context)!.restoreFile),
           ),
         ],
       ),
@@ -473,7 +474,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       
       if (!await deletedFilesFile.exists()) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.noFilesToRestore)),
+          const SnackBar(content: Text('Geri alınacak dosya bulunamadı')),
         );
         return;
       }
@@ -481,7 +482,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       final content = await deletedFilesFile.readAsString();
       if (content.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.noFilesToRestore)),
+          const SnackBar(content: Text('Geri alınacak dosya bulunamadı')),
         );
         return;
       }
@@ -537,14 +538,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       if (restored > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.filesRestored),
+            content: Text('$restored dosya başarıyla geri alındı'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.noFilesToRestore),
+          const SnackBar(
+            content: Text('Geri alınacak dosya bulunamadı'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -588,7 +589,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   color: Colors.black12,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
+                child: const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -602,7 +603,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       ),
                       SizedBox(height: 8),
                       Text(
-                        AppLocalizations.of(context)!.videoLoading,
+                        'Video yükleniyor...',
                         style: TextStyle(color: Colors.white, fontSize: 10),
                       ),
                     ],
@@ -781,12 +782,19 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                           borderRadius: BorderRadius.circular(24),
                           onTap: null, // DebouncedButton üstte olduğu için null
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.13),
+                              color: Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 28),
+                            child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 24),
                           ),
                         ),
                       ),
@@ -941,6 +949,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                               numberOfCardsDisplayed: 1,
                                               isLoop: false,
                                               onSwipe: (int realIndex, int? previousIndex, CardSwiperDirection direction) async {
+                                                // Mevcut videoyu durdur
+                                                final currentPhotoIndex = currentIndex + realIndex;
+                                                final currentController = _videoControllers[currentPhotoIndex];
+                                                if (currentController != null && currentController.value.isPlaying) {
+                                                  currentController.pause();
+                                                }
+                                                
                                                 if (direction == CardSwiperDirection.left) {
                                                   _onSwipe(Direction.left, currentIndex + realIndex);
                                                 } else if (direction == CardSwiperDirection.right) {
@@ -971,14 +986,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                               color: Colors.black12,
                                                               borderRadius: BorderRadius.circular(12),
                                                             ),
-                                                            child: Center(
+                                                            child: const Center(
                                                               child: Column(
                                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                                 children: [
                                                                   CircularProgressIndicator(color: Colors.white),
                                                                   SizedBox(height: 8),
                                                                   Text(
-                                                                    AppLocalizations.of(context)!.videoLoading,
+                                                                    'Video yükleniyor...',
                                                                     style: TextStyle(color: Colors.white, fontSize: 12),
                                                                   ),
                                                                 ],
@@ -986,7 +1001,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                             ),
                                                           ),
                                                         ),
-                                                        const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 64)),
+                                                        const Center(child: Icon(Icons.videocam, color: Colors.white, size: 64)),
                                                       ],
                                                     );
                                                   } else {
@@ -1117,7 +1132,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(appLoc?.exitReviewDialogTitle ?? 'Çıkış Onayı'),
+        title: const Text('Çıkış Onayı'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1166,11 +1181,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-              child: Text(appLoc?.deleteAndExit ?? 'Sil ve Çık'),
+              child: const Text('Sil ve Çık'),
             ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop('exit'),
-            child: Text(appLoc?.exitWithoutDeleting ?? 'Silmeden Çık'),
+            child: const Text('Silmeden Çık'),
           ),
         ],
       ),
@@ -1329,15 +1344,15 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.manageAllFilesPermissionTitle),
-        content: Text(AppLocalizations.of(context)!.manageAllFilesPermissionDescription),
+        title: const Text('Tüm Dosyaları Yönetme İzni Gerekli'),
+        content: const Text('Uygulamanın tüm dosyalarınıza erişebilmesi için ayarlardan "Tüm dosyaları yönetme" izni vermelisiniz.'),
         actions: [
           TextButton(
             onPressed: () async {
               await openAppSettings();
               Navigator.of(context).pop();
             },
-            child: Text(AppLocalizations.of(context)!.goToSettings),
+            child: const Text('Ayarlara Git'),
           ),
         ],
       ),

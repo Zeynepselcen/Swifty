@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import 'main_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -43,7 +44,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_currentPage < _pages.length - 1) {
       _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
-      Navigator.of(context).pop();
+      // Onboarding bittiğinde ana ekrana geç
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainScreen()),
+      );
     }
   }
 

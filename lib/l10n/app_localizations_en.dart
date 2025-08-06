@@ -78,7 +78,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get size => 'size';
 
   @override
-  String get date => 'date';
+  String get date => 'Date';
 
   @override
   String get name => 'name';
@@ -88,6 +88,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refresh => 'Refresh';
+
+  @override
+  String get folder => 'Folder';
 
   @override
   String get recent => 'Recent';

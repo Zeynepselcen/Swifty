@@ -24,6 +24,13 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _locale = locale;
     });
+    
+    // Dil değişikliği sonrası daha güçlü yenileme
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _toggleTheme() {
@@ -116,14 +123,18 @@ class _MyAppState extends State<MyApp> {
       ),
       home: const VideoSplashScreen(),
       routes: {
-        '/main': (context) => MainScreen(
-          onLocaleChanged: _setLocale,
-          currentLocale: _locale,
-          isDarkTheme: _themeMode == ThemeMode.dark,
-          onThemeChanged: () {
-            setState(() {
-              _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-            });
+        '/main': (context) => Builder(
+          builder: (context) {
+            return MainScreen(
+              onLocaleChanged: _setLocale,
+              currentLocale: _locale,
+              isDarkTheme: _themeMode == ThemeMode.dark,
+              onThemeChanged: () {
+                setState(() {
+                  _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+                });
+              },
+            );
           },
         ),
       },

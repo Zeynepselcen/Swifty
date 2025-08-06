@@ -32,8 +32,8 @@ android {
         applicationId = "com.swifty.gallerycleaner"
         minSdk = 21
         targetSdk = 35
-        versionCode = 53
-        versionName = "1.3.15"
+        versionCode = 56
+        versionName = "1.3.16"
     }
 
     signingConfigs {

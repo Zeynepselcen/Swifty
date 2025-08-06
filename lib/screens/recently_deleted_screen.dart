@@ -159,17 +159,20 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   }
 
   String _getTimeRemaining(int expiresAt) {
+    final appLoc = AppLocalizations.of(context)!;
     final now = DateTime.now().millisecondsSinceEpoch;
     final remaining = expiresAt - now;
     final days = (remaining / (1000 * 60 * 60 * 24)).floor();
     final hours = ((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).floor();
     
     if (days > 0) {
-      return '$days gün $hours saat kaldı';
+      final daysText = appLoc.daysRemaining as String;
+      return daysText.replaceAll('{days}', '$days').replaceAll('{hours}', '$hours');
     } else if (hours > 0) {
-      return '$hours saat kaldı';
+      final hoursText = appLoc.hoursRemaining as String;
+      return hoursText.replaceAll('{hours}', '$hours');
     } else {
-      return 'Süre dolmak üzere';
+      return appLoc.expiringSoon as String;
     }
   }
 
@@ -214,8 +217,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                     ],
                   ),
                 )
-              : ListView.builder(
+              : ListView.separated(
                   itemCount: deletedFiles.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final file = deletedFiles[index];
                     final fileName = file['fileName'] as String;
@@ -276,7 +280,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                             Text(
                               _getTimeRemaining(expiresAt),
                               style: TextStyle(
-                                color: _getTimeRemaining(expiresAt).contains('kaldı')
+                                color: _getTimeRemaining(expiresAt).contains(AppLocalizations.of(context)!.timeRemaining.split(' ').first)
                                     ? Colors.green
                                     : Colors.orange,
                                 fontWeight: FontWeight.bold,

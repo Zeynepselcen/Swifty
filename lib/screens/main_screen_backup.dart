@@ -22,30 +22,13 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   Locale _currentLocale = const Locale('tr');
+  int _forceReloadCounter = 0; // Hot reload için zorlama sayacı
+  Key _localizationsKey = UniqueKey(); // AppLocalizations için unique key
 
   @override
   void initState() {
     super.initState();
     _currentLocale = widget.currentLocale ?? const Locale('tr');
-    
-    // Eğer widget.currentLocale null ise, varsayılan dil kullan
-    if (widget.currentLocale == null) {
-      _currentLocale = const Locale('tr');
-    }
-  }
-
-  void _handleLocaleChange(Locale newLocale) {
-    setState(() {
-      _currentLocale = newLocale;
-    });
-    widget.onLocaleChanged?.call(newLocale);
-    
-    // Dil değişikliği sonrası daha güçlü yenileme
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
   }
 
   void _showLanguageDialog() async {
@@ -82,7 +65,50 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
     if (selected != null && selected != _currentLocale.languageCode) {
-      _handleLocaleChange(Locale(selected));
+      setState(() {
+        _currentLocale = Locale(selected);
+        _forceReloadCounter++; // Hot reload için zorlama
+        _localizationsKey = UniqueKey(); // AppLocalizations'ı zorla yenile
+      });
+      widget.onLocaleChanged?.call(Locale(selected));
+      
+      // Dil değişikliği sonrası UI'ı zorla yenile
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _forceReloadCounter++; // Hot reload için zorlama
+            _localizationsKey = UniqueKey(); // AppLocalizations'ı zorla yenile
+          });
+          
+          // Daha güçlü yenileme - 3 kez setState çağır
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted) {
+              setState(() {
+                _forceReloadCounter++;
+                _localizationsKey = UniqueKey();
+              });
+            }
+          });
+          
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (mounted) {
+              setState(() {
+                _forceReloadCounter++;
+                _localizationsKey = UniqueKey();
+              });
+            }
+          });
+          
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              setState(() {
+                _forceReloadCounter++;
+                _localizationsKey = UniqueKey();
+              });
+            }
+          });
+        }
+      });
     }
   }
 
@@ -237,7 +263,9 @@ class _MainScreenState extends State<MainScreen> {
   void didUpdateWidget(covariant MainScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.currentLocale != null && widget.currentLocale != _currentLocale) {
-      _handleLocaleChange(widget.currentLocale!);
+      setState(() {
+        _currentLocale = widget.currentLocale!;
+      });
     }
   }
 
@@ -483,6 +511,9 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+          },
+        ),
+      );
   }
 }
 

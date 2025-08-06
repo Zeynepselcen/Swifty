@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding_screen.dart';
+import 'main_screen.dart';
 
 class VideoSplashScreen extends StatefulWidget {
   const VideoSplashScreen({super.key});
@@ -41,21 +43,33 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
       }
     } catch (e) {
       print('Video yükleme hatası: $e');
-      // Video yüklenemezse 3 saniye sonra geç
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          _navigateToNextScreen();
-        }
-      });
+      // Video yüklenemezse direkt geç
+      if (mounted) {
+        _navigateToNextScreen();
+      }
     }
   }
 
-  void _navigateToNextScreen() {
+  void _navigateToNextScreen() async {
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      // Onboarding'in daha önce gösterilip gösterilmediğini kontrol et
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+      
+      if (!hasSeenOnboarding) {
+        // İlk kez açılıyorsa onboarding göster
+        await prefs.setBool('has_seen_onboarding', true);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      } else {
+        // Daha önce gösterilmişse direkt ana ekrana geç
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainScreen()),
+        );
+      }
     }
   }
 
@@ -75,32 +89,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
                 aspectRatio: _videoPlayerController!.value.aspectRatio,
                 child: VideoPlayer(_videoPlayerController!),
               )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/logom.png', width: 120, height: 120),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Swifty',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Text(
-                    'Galeri Temizleyici',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ],
-              ),
+            : const SizedBox.shrink(), // Boş ekran
       ),
     );
   }

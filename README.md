@@ -1,4 +1,4 @@
-# Swifty - Akıllı Galeri Temizleyici
+ ş# Swifty - Akıllı Galeri Temizleyici
 
 Swifty, fotoğraf ve videolarınızı kolayca yönetmenizi, düzenlemenizi ve temizlemenizi sağlayan akıllı bir galeri uygulamasıdır.
 

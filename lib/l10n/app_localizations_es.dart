@@ -79,7 +79,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get size => 'tamaño';
 
   @override
-  String get date => 'fecha';
+  String get date => 'Fecha';
 
   @override
   String get name => 'nombre';
@@ -89,6 +89,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get refresh => 'Actualizar';
+
+  @override
+  String get folder => 'Carpeta';
 
   @override
   String get recent => 'Reciente';
@@ -235,194 +238,197 @@ class AppLocalizationsEs extends AppLocalizations {
   String get undoFeatureComingSoon => 'Función de deshacer próximamente';
 
   @override
-  String get recentlyDeletedFilesNotFound => 'No deleted files found';
+  String get recentlyDeletedFilesNotFound =>
+      'No se encontraron archivos eliminados';
 
   @override
-  String get restoreFile => 'Restore';
+  String get restoreFile => 'Restaurar';
 
   @override
-  String get fileDetails => 'File Details';
+  String get fileDetails => 'Detalles del Archivo';
 
   @override
-  String get deletedAt => 'Deleted at';
+  String get deletedAt => 'Eliminado en';
 
   @override
-  String get timeRemaining => 'Time remaining';
+  String get timeRemaining => 'Tiempo restante';
 
   @override
-  String get close => 'Close';
+  String get close => 'Cerrar';
 
   @override
-  String get fileRestored => 'File restored';
+  String get fileRestored => 'Archivo restaurado';
 
   @override
-  String get fileNotFound => 'File not found';
+  String get fileNotFound => 'Archivo no encontrado';
 
   @override
-  String get restoreError => 'Restore error';
+  String get restoreError => 'Error de restauración';
 
   @override
-  String get galleryOptions => 'Gallery Options';
+  String get galleryOptions => 'Opciones de Galería';
 
   @override
-  String get androidGallery => 'Android Gallery';
+  String get androidGallery => 'Galería de Android';
 
   @override
-  String get androidGalleryDesc => 'Open your phone\'s own gallery app';
+  String get androidGalleryDesc =>
+      'Abrir la aplicación de galería propia del teléfono';
 
   @override
-  String get recentlyDeleted => 'Recently Deleted';
+  String get recentlyDeleted => 'Eliminados Recientemente';
 
   @override
-  String get recentlyDeletedDesc => 'Open Android\'s own trash';
+  String get recentlyDeletedDesc => 'Abrir la papelera propia de Android';
 
   @override
   String get galleryAppNotFound =>
-      'Gallery app could not be opened. You can open the gallery app manually.';
+      'No se pudo abrir la aplicación de galería. Puedes abrir la aplicación de galería manualmente.';
 
   @override
   String get trashNotFound =>
-      'Trash could not be opened. You can go to DCIM/.trash folder from file manager manually.';
+      'No se pudo abrir la papelera. Puedes ir a la carpeta DCIM/.trash desde el administrador de archivos manualmente.';
 
   @override
-  String get restoreFiles => 'Restore Files';
+  String get restoreFiles => 'Restaurar Archivos';
 
   @override
-  String get restoreFilesQuestion => 'Do you want to restore deleted files?';
+  String get restoreFilesQuestion => '¿Quieres restaurar archivos eliminados?';
 
   @override
-  String get restoreAll => 'Restore All';
+  String get restoreAll => 'Restaurar Todo';
 
   @override
-  String get noFilesToRestore => 'No files to restore';
+  String get noFilesToRestore => 'No hay archivos para restaurar';
 
   @override
-  String get filesRestoredSuccessfully => 'Files restored successfully';
+  String get filesRestoredSuccessfully => 'Archivos restaurados exitosamente';
 
   @override
-  String get exitConfirmation => 'Exit Confirmation';
+  String get exitConfirmation => 'Confirmación de Salida';
 
   @override
   String exitWithoutReviewing(Object label, Object remaining) {
-    return 'You are about to exit without reviewing all $label. Remaining: $remaining $label. If you go back, you\'ll have to start over. Do you want to exit?';
+    return 'Estás a punto de salir sin revisar todos los $label. Restantes: $remaining $label. Si regresas, tendrás que empezar de nuevo. ¿Quieres salir?';
   }
 
   @override
-  String get deleteAndExit => 'Delete and Exit';
+  String get deleteAndExit => 'Eliminar y Salir';
 
   @override
-  String get exitWithoutDeleting => 'Exit Without Deleting';
+  String get exitWithoutDeleting => 'Salir Sin Eliminar';
 
   @override
   String filesMovedToTrash(Object count) {
-    return '$count files moved to \"Recently Deleted\" folder. You can restore them within 30 days from the \"Recently Deleted\" screen.';
+    return '$count archivos movidos a la carpeta \"Eliminados Recientemente\". Puedes restaurarlos dentro de 30 días desde la pantalla \"Eliminados Recientemente\".';
   }
 
   @override
-  String get restore => 'Restore';
+  String get restore => 'Restaurar';
 
   @override
-  String get details => 'Details';
+  String get details => 'Detalles';
 
   @override
-  String get originalPath => 'Original Path';
+  String get originalPath => 'Ruta Original';
 
   @override
-  String get trashPath => 'Trash Path';
+  String get trashPath => 'Ruta de Papelera';
 
   @override
-  String get expiresAt => 'Expires at';
+  String get expiresAt => 'Expira en';
 
   @override
   String daysRemaining(Object days, Object hours) {
-    return '$days days $hours hours remaining';
+    return '$days días $hours horas restantes';
   }
 
   @override
   String hoursRemaining(Object hours) {
-    return '$hours hours remaining';
+    return '$hours horas restantes';
   }
 
   @override
-  String get expiringSoon => 'Expiring soon';
+  String get expiringSoon => 'Expirando pronto';
 
   @override
-  String get androidTrashFolder => 'Android Trash Folder';
+  String get androidTrashFolder => 'Papelera de Android';
 
   @override
   String get androidTrashFolderDesc =>
-      'Files moved to Android\'s own trash folder';
+      'Archivos movidos a la papelera propia de Android';
 
   @override
-  String get appTrashFolder => 'App Trash Folder';
+  String get appTrashFolder => 'Papelera de la Aplicación';
 
   @override
   String get appTrashFolderDesc =>
-      'Files moved to app\'s internal trash folder';
+      'Archivos movidos a la papelera interna de la aplicación';
 
   @override
-  String get loading => 'Loading...';
+  String get loading => 'Cargando...';
 
   @override
-  String get loadingPhotos => 'Loading photos...';
+  String get loadingPhotos => 'Cargando fotos...';
 
   @override
-  String get loadingVideos => 'Loading videos...';
+  String get loadingVideos => 'Cargando videos...';
 
   @override
-  String get loadingAlbums => 'Loading albums...';
+  String get loadingAlbums => 'Cargando álbumes...';
 
   @override
-  String get pleaseWait => 'Please wait';
+  String get pleaseWait => 'Por favor espera';
 
   @override
-  String get analyzingGallery => 'Analyzing gallery...';
+  String get analyzingGallery => 'Analizando galería...';
 
   @override
-  String get processingFiles => 'Processing files...';
+  String get processingFiles => 'Procesando archivos...';
 
   @override
-  String get preparingFiles => 'Preparing files...';
+  String get preparingFiles => 'Preparando archivos...';
 
   @override
-  String get photoDeleted => 'Photo deleted';
+  String get photoDeleted => 'Foto eliminada';
 
   @override
-  String get filesRestored => 'Files restored successfully';
+  String get filesRestored => 'Archivos restaurados exitosamente';
 
   @override
-  String get videoLoading => 'Loading video...';
+  String get videoLoading => 'Cargando video...';
 
   @override
-  String get exitReviewDialogTitle => 'Exit Review Screen';
+  String get exitReviewDialogTitle => 'Salir de la Pantalla de Revisión';
 
   @override
-  String get manageAllFilesPermissionTitle => 'Manage All Files Permission';
+  String get manageAllFilesPermissionTitle =>
+      'Permiso de Gestión de Todos los Archivos';
 
   @override
   String get manageAllFilesPermissionDescription =>
-      'Access to all your files is required.';
+      'Se requiere acceso a todos tus archivos.';
 
   @override
-  String get goToSettings => 'Go to Settings';
+  String get goToSettings => 'Ir a Configuración';
 
   @override
-  String get back => 'Back';
+  String get back => 'Atrás';
 
   @override
-  String get undo => 'Undo';
+  String get undo => 'Deshacer';
 
   @override
-  String get noPhotosFound => 'No photos found in this folder';
+  String get noPhotosFound => 'No se encontraron fotos en esta carpeta';
 
   @override
-  String get permissionRequired => 'Permission Required';
+  String get permissionRequired => 'Permiso Requerido';
 
   @override
   String get permissionRequiredDescription =>
-      'Permission is required to access your gallery. Please enable it in your device settings.';
+      'Se requiere permiso para acceder a tu galería. Por favor habilítalo en la configuración de tu dispositivo.';
 
   @override
   String get noAlbumsFoundDescription =>
-      'Gallery access permission granted but no photos or videos found.';
+      'Se otorgó permiso de acceso a la galería pero no se encontraron fotos o videos.';
 }
