@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'onboarding_screen.dart';
 import 'gallery_album_list_screen.dart';
+import 'recently_deleted_screen.dart';
 import '../widgets/debounced_button.dart';
 // import '../l10n/app_localizations.dart'; // kaldırıldı
 
 import 'dart:io';
 import '../l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MainScreen extends StatefulWidget {
   final void Function(Locale)? onLocaleChanged;
@@ -66,6 +68,124 @@ class _MainScreenState extends State<MainScreen> {
       });
       widget.onLocaleChanged?.call(Locale(selected));
     }
+  }
+
+  void _showGalleryOptions() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white.withOpacity(0.95),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Galeri Seçenekleri', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                const SizedBox(height: 16),
+                _buildGalleryOption('android', '📱 Android Galerisi', 'Telefonun kendi galeri uygulamasını aç'),
+                const SizedBox(height: 8),
+                _buildGalleryOption('trash', '🗑️ Son Silinenler', 'Android\'in kendi çöp kutusunu aç'),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('İptal'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    
+    if (selected == 'android') {
+      // Android galerisini aç
+      try {
+        final Uri uri = Uri.parse('content://media/external/images/media');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else {
+          // Alternatif olarak galeri uygulamasını aç
+          final galleryUri = Uri.parse('content://media/external/file');
+          if (await canLaunchUrl(galleryUri)) {
+            await launchUrl(galleryUri);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Galeri uygulaması açılamadı. Manuel olarak galeri uygulamasını açabilirsiniz.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Galeri uygulaması açılamadı. Manuel olarak galeri uygulamasını açabilirsiniz.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else if (selected == 'trash') {
+      // Android'in kendi çöp kutusunu aç
+      try {
+        final trashUri = Uri.parse('content://media/external/images/media/trash');
+        if (await canLaunchUrl(trashUri)) {
+          await launchUrl(trashUri);
+        } else {
+          // Alternatif olarak dosya yöneticisini aç
+          final fileUri = Uri.parse('file:///storage/emulated/0/DCIM/.trash');
+          if (await canLaunchUrl(fileUri)) {
+            await launchUrl(fileUri);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Çöp kutusu açılamadı. Manuel olarak dosya yöneticisinden DCIM/.trash klasörüne gidebilirsiniz.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Çöp kutusu açılamadı. Manuel olarak dosya yöneticisinden DCIM/.trash klasörüne gidebilirsiniz.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildGalleryOption(String code, String label, String subtitle) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, code),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFB24592), width: 1),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFFB24592), size: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildLangOption(String code, String label) {
@@ -195,15 +315,19 @@ class _MainScreenState extends State<MainScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.10),
+                color: Colors.white.withOpacity(0.25),
                 borderRadius: BorderRadius.circular(40),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -253,11 +377,14 @@ class _MainScreenState extends State<MainScreen> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4DB6AC),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                        elevation: 8,
+                        shadowColor: Colors.black.withOpacity(0.3),
                       ),
-                      icon: const Icon(Icons.info_outline),
-                      label: Text(appLoc.welcome, style: const TextStyle(fontSize: 18)),
+                      icon: const Icon(Icons.info_outline, color: Colors.white, size: 24),
+                      label: Text(appLoc.welcome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       onPressed: null, // DebouncedButton üstte olduğu için null
                     ),
                   ),
@@ -271,14 +398,40 @@ class _MainScreenState extends State<MainScreen> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE57373),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                        elevation: 8,
+                        shadowColor: Colors.black.withOpacity(0.3),
                       ),
-                      icon: const Icon(Icons.photo),
-                      label: Text(appLoc.start, style: const TextStyle(fontSize: 18)),
+                      icon: const Icon(Icons.photo, color: Colors.white, size: 24),
+                      label: Text(appLoc.start, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       onPressed: null, // DebouncedButton üstte olduğu için null
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  DebouncedButton(
+                    onPressed: () async {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const RecentlyDeletedScreen()),
+                      );
+                    },
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6D327A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                        elevation: 8,
+                        shadowColor: Colors.black.withOpacity(0.3),
+                      ),
+                      icon: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+                      label: Text(appLoc.recentlyDeleted, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      onPressed: null, // DebouncedButton üstte olduğu için null
+                    ),
+                  ),
+
+
 
                 ],
               ),

@@ -8,6 +8,11 @@ import 'package:photo_manager/photo_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/foundation.dart'; // compute için
+import 'dart:io' show Directory;
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 import 'package:permission_handler/permission_handler.dart'; // HATIRLATMA: Tüm dosya yönetimi izni için eklendi, sorun olursa kaldırabilirsin.
 import 'package:flutter/services.dart'; // Tüm dosya yönetimi izni için eklendi
@@ -189,12 +194,12 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
-        content: const Text('Permission is required to access your gallery. Please enable it in your device settings.'),
+        title: Text(appLoc?.permissionRequired ?? 'Permission Required'),
+        content: Text(appLoc?.permissionRequiredDescription ?? 'Permission is required to access your gallery. Please enable it in your device settings.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(appLoc?.ok ?? 'OK'),
           ),
         ],
       ),
@@ -207,7 +212,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       builder: (context) => AlertDialog(
         title: Text(appLoc?.noAlbumsFound ?? 'Galeri Boş'),
-        content: Text(appLoc?.noAlbumsFound ?? 'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
+        content: Text(appLoc?.noAlbumsFoundDescription ?? 'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -255,11 +260,129 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     if (toDelete.isEmpty) return;
     
     int deleted = 0;
+    final filesToDelete = <String>[];
+    final deletedFileInfos = <Map<String, dynamic>>[];
+    
     try {
-      await PhotoManager.editor.deleteWithIds(toDelete);
-      deleted = toDelete.length;
+      // Önce tüm dosyaları hazırla
+      for (final photoId in toDelete) {
+        final photo = photos.firstWhere((p) => p.id == photoId);
+        if (photo.path != null && photo.path!.isNotEmpty) {
+          try {
+            // Android'in gerçek "Son Silinenler" klasörüne taşı
+            final originalFile = File(photo.path!);
+            if (await originalFile.exists()) {
+              // Önce Android'in DCIM/.trash klasörüne taşımayı dene
+              final dcimDir = Directory('/storage/emulated/0/DCIM');
+              final trashDir = Directory('${dcimDir.path}/.trash');
+              
+              String trashPath;
+              bool useAndroidTrash = false;
+              
+              // Trash klasörünü oluştur (yoksa)
+              if (!await trashDir.exists()) {
+                try {
+                  await trashDir.create(recursive: true);
+                  useAndroidTrash = true;
+                } catch (e) {
+                  print('Android trash klasörü oluşturulamadı: $e');
+                  useAndroidTrash = false;
+                }
+              } else {
+                useAndroidTrash = true;
+              }
+              
+              final fileName = path.basename(photo.path!);
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final trashFileName = '${timestamp}_$fileName';
+              
+              if (useAndroidTrash) {
+                trashPath = '${trashDir.path}/$trashFileName';
+              } else {
+                // Alternatif olarak uygulama içi klasöre taşı
+                final appDir = await getApplicationDocumentsDirectory();
+                final swiftyTrashDir = Directory('${appDir.path}/swifty_trash');
+                if (!await swiftyTrashDir.exists()) {
+                  await swiftyTrashDir.create(recursive: true);
+                }
+                trashPath = '${swiftyTrashDir.path}/$trashFileName';
+              }
+            
+              // Dosyayı kopyala
+              await originalFile.copy(trashPath);
+              
+              // Silinecek dosya bilgilerini sakla
+              filesToDelete.add(photoId);
+              deletedFileInfos.add({
+                'originalPath': photo.path!,
+                'trashPath': trashPath,
+                'photoId': photo.id,
+                'fileName': fileName,
+                'deletedAt': DateTime.now().millisecondsSinceEpoch,
+                'expiresAt': DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
+              });
+              
+              print('Dosya hazırlandı: ${photo.path} -> $trashPath');
+            }
+          } catch (e) {
+            print('Dosya hazırlama hatası: $e');
+            // Hata durumunda sadece silme listesine ekle
+            filesToDelete.add(photoId);
+          }
+        }
+      }
+      
+      // Tüm dosyaları tek seferde sil (tek izin)
+      if (filesToDelete.isNotEmpty) {
+        await PhotoManager.editor.deleteWithIds(filesToDelete);
+        deleted = filesToDelete.length;
+        
+        // Silinen dosya bilgilerini JSON'a kaydet
+        for (final fileInfo in deletedFileInfos) {
+          await _saveDeletedFileInfo(
+            fileInfo['originalPath'], 
+            fileInfo['trashPath'], 
+            fileInfo['photoId'], 
+            fileInfo['fileName']
+          );
+        }
+      }
+      
+      print('$deleted dosya Swifty "Son Silinenler" klasörüne taşındı');
+      
+      // Kullanıcıya bilgi ver
+      if (deleted > 0) {
+        final appLoc = AppLocalizations.of(context)!;
+        final appDir = await getApplicationDocumentsDirectory();
+        final trashPath = '${appDir.path}/swifty_trash';
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(appLoc.photoDeleted),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: appLoc.restoreFile,
+              textColor: Colors.white,
+              onPressed: () => _showRestoreDialog(),
+            ),
+          ),
+        );
+        
+        // Debug için klasör bilgisini yazdır
+        print('Android Trash Klasörü: /storage/emulated/0/DCIM/.trash');
+        final trashDir = Directory('/storage/emulated/0/DCIM/.trash');
+        if (await trashDir.exists()) {
+          final files = await trashDir.list().toList();
+          print('Android Trash klasöründe ${files.length} dosya var');
+          for (final file in files) {
+            print('  - ${file.path}');
+          }
+        }
+      }
+      
     } catch (e) {
-      print('Silme hatası: $e');
+      print('Toplu silme hatası: $e');
     }
     
     // Silinen fotoğrafları listeden çıkar
@@ -277,6 +400,164 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     }
     
     setState(() { toDelete.clear(); });
+  }
+
+  // Silinen dosya bilgisini JSON dosyasında sakla
+  Future<void> _saveDeletedFileInfo(String originalPath, String trashPath, String photoId, String fileName) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final deletedFilesPath = '${appDir.path}/deleted_files.json';
+      final deletedFilesFile = File(deletedFilesPath);
+      
+      List<Map<String, dynamic>> deletedFiles = [];
+      
+      // Mevcut dosyayı oku
+      if (await deletedFilesFile.exists()) {
+        final content = await deletedFilesFile.readAsString();
+        if (content.isNotEmpty) {
+          deletedFiles = List<Map<String, dynamic>>.from(
+            json.decode(content) as List
+          );
+        }
+      }
+      
+      // Yeni dosya bilgisini ekle
+      deletedFiles.add({
+        'originalPath': originalPath,
+        'trashPath': trashPath,
+        'photoId': photoId,
+        'fileName': fileName,
+        'deletedAt': DateTime.now().millisecondsSinceEpoch,
+        'expiresAt': DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
+      });
+      
+      // Dosyayı kaydet
+      await deletedFilesFile.writeAsString(json.encode(deletedFiles));
+      
+      print('Silinen dosya bilgisi JSON dosyasına kaydedildi: $fileName');
+    } catch (e) {
+      print('Silinen dosya bilgisi kaydedilemedi: $e');
+    }
+  }
+
+  // Geri alma dialog'u göster
+  void _showRestoreDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.undoTitle),
+        content: Text(AppLocalizations.of(context)!.undoMessage(deletedPhotos.length)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+                          child: Text(AppLocalizations.of(context)!.undoCancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _restoreDeletedFiles();
+            },
+                          child: Text(AppLocalizations.of(context)!.undoConfirm),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Silinen dosyaları geri al
+  Future<void> _restoreDeletedFiles() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final deletedFilesPath = '${appDir.path}/deleted_files.json';
+      final deletedFilesFile = File(deletedFilesPath);
+      
+      if (!await deletedFilesFile.exists()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.noFilesToRestore)),
+        );
+        return;
+      }
+
+      final content = await deletedFilesFile.readAsString();
+      if (content.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.noFilesToRestore)),
+        );
+        return;
+      }
+
+      List<Map<String, dynamic>> deletedFiles = List<Map<String, dynamic>>.from(
+        json.decode(content) as List
+      );
+
+      int restored = 0;
+      final remainingFiles = <Map<String, dynamic>>[];
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      for (final fileInfo in deletedFiles) {
+        final originalPath = fileInfo['originalPath'] as String;
+        final trashPath = fileInfo['trashPath'] as String;
+        final expiresAt = fileInfo['expiresAt'] as int;
+        
+        // Süresi dolmuş dosyaları atla
+        if (now > expiresAt) {
+          // Süresi dolmuş trash dosyasını sil
+          try {
+            final trashFile = File(trashPath);
+            if (await trashFile.exists()) {
+              await trashFile.delete();
+            }
+          } catch (e) {
+            print('Süresi dolmuş dosya silme hatası: $e');
+          }
+          continue;
+        }
+        
+        try {
+          final trashFile = File(trashPath);
+          if (await trashFile.exists()) {
+            // Dosyayı orijinal konumuna geri kopyala
+            await trashFile.copy(originalPath);
+            await trashFile.delete(); // Trash dosyasını sil
+            restored++;
+            print('Dosya geri alındı: ${fileInfo['fileName']}');
+          } else {
+            // Trash dosyası yoksa bilgiyi kaldır
+            print('Trash dosyası bulunamadı: $trashPath');
+          }
+        } catch (e) {
+          print('Dosya geri alma hatası: $e');
+          remainingFiles.add(fileInfo);
+        }
+      }
+
+      // Kalan dosyaları kaydet
+      await deletedFilesFile.writeAsString(json.encode(remainingFiles));
+
+      if (restored > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.filesRestored),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.noFilesToRestore),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Geri alma hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Geri alma hatası: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _localizedAlbumName(String name, AppLocalizations appLoc) {
@@ -307,7 +588,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   color: Colors.black12,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -321,7 +602,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Video yükleniyor...',
+                        AppLocalizations.of(context)!.videoLoading,
                         style: TextStyle(color: Colors.white, fontSize: 10),
                       ),
                     ],
@@ -690,14 +971,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                               color: Colors.black12,
                                                               borderRadius: BorderRadius.circular(12),
                                                             ),
-                                                            child: const Center(
+                                                            child: Center(
                                                               child: Column(
                                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                                 children: [
                                                                   CircularProgressIndicator(color: Colors.white),
                                                                   SizedBox(height: 8),
                                                                   Text(
-                                                                    'Video yükleniyor...',
+                                                                    AppLocalizations.of(context)!.videoLoading,
                                                                     style: TextStyle(color: Colors.white, fontSize: 12),
                                                                   ),
                                                                 ],
@@ -744,11 +1025,32 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                     onTap: () {
                                                       _showFullScreenImage(photo);
                                                     },
-                                                    child: Image.memory(
-                                                      photo.thumb,
-                                                      fit: BoxFit.cover,
-                                                      width: maxCardWidth - 20,
-                                                      height: maxCardHeight - 20,
+                                                    child: Stack(
+                                                      children: [
+                                                        Image.memory(
+                                                          photo.thumb,
+                                                          fit: BoxFit.cover,
+                                                          width: maxCardWidth - 20,
+                                                          height: maxCardHeight - 20,
+                                                        ),
+                                                        // Zoom ikonu
+                                                        Positioned(
+                                                          top: 8,
+                                                          right: 8,
+                                                          child: Container(
+                                                            padding: const EdgeInsets.all(6),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.black.withOpacity(0.6),
+                                                              borderRadius: BorderRadius.circular(20),
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons.zoom_in,
+                                                              color: Colors.white,
+                                                              size: 20,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   );
                                                 }
@@ -815,7 +1117,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Çıkış Onayı'),
+        title: Text(appLoc?.exitReviewDialogTitle ?? 'Çıkış Onayı'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -864,11 +1166,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Sil ve Çık'),
+              child: Text(appLoc?.deleteAndExit ?? 'Sil ve Çık'),
             ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop('exit'),
-            child: const Text('Silmeden Çık'),
+            child: Text(appLoc?.exitWithoutDeleting ?? 'Silmeden Çık'),
           ),
         ],
       ),
@@ -893,15 +1195,16 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
 
   // Geri alma dialog'u
   void _showUndoDialog() {
+    final appLoc = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Geri Alma'),
-        content: Text('${deletedPhotos.length} fotoğrafı geri almak istiyor musunuz?'),
+        title: Text(appLoc.undoTitle),
+        content: Text(appLoc.undoMessage(deletedPhotos.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
+            child: Text(appLoc.undoCancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -911,7 +1214,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
             ),
-            child: const Text('Geri Al', style: TextStyle(color: Colors.white)),
+            child: Text(appLoc.undoConfirm, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -919,11 +1222,35 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   }
 
   // Son silme işlemini geri al
-  void _undoLastDeletion() {
+  void _undoLastDeletion() async {
     if (deletedPhotos.isNotEmpty) {
+      final lastDeleted = deletedPhotos.last;
+      
+      // Dosya gerçekten silinmiş mi kontrol et
+      bool fileExists = false;
+      if (lastDeleted.path != null && lastDeleted.path!.isNotEmpty) {
+        final file = File(lastDeleted.path!);
+        fileExists = await file.exists();
+      }
+      
+      if (!fileExists) {
+        // Dosya gerçekten silinmiş, geri alma mümkün değil
+        final appLoc = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(appLoc.filePermanentlyDeleted),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        setState(() {
+          deletedPhotos.removeLast();
+          toDelete.remove(lastDeleted.id);
+        });
+        return;
+      }
+      
       setState(() {
         // Son silinen fotoğrafı geri ekle
-        final lastDeleted = deletedPhotos.last;
         photos.insert(currentIndex, lastDeleted);
         
         // Listelerden çıkar
@@ -934,9 +1261,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         currentIndex = (currentIndex - 1).clamp(0, photos.length - 1);
       });
       
+      final appLoc = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Son silinen fotoğraf geri alındı'),
+        SnackBar(
+          content: Text(appLoc.lastPhotoUndone),
           backgroundColor: Colors.green,
         ),
       );
@@ -944,7 +1272,20 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
   }
 
   // Tam ekran fotoğraf görüntüleme
-  void _showFullScreenImage(PhotoItem photo) {
+  void _showFullScreenImage(PhotoItem photo) async {
+    // Tam çözünürlüklü fotoğrafı yükle
+    Uint8List? fullImageData;
+    try {
+      if (photo.path != null && photo.path!.isNotEmpty) {
+        final file = File(photo.path!);
+        if (await file.exists()) {
+          fullImageData = await file.readAsBytes();
+        }
+      }
+    } catch (e) {
+      print('Tam çözünürlüklü fotoğraf yükleme hatası: $e');
+    }
+    
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
@@ -953,7 +1294,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             backgroundColor: Colors.black,
             iconTheme: const IconThemeData(color: Colors.white),
             title: Text(
-              'Fotoğraf Detayı',
+              AppLocalizations.of(context)!.photoDetail,
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -961,10 +1302,21 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
-              child: Image.memory(
-                photo.thumb,
-                fit: BoxFit.contain,
-              ),
+              child: fullImageData != null
+                  ? Image.memory(
+                      fullImageData,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.memory(
+                          photo.thumb,
+                          fit: BoxFit.contain,
+                        );
+                      },
+                    )
+                  : Image.memory(
+                      photo.thumb,
+                      fit: BoxFit.contain,
+                    ),
             ),
           ),
         ),
@@ -977,15 +1329,15 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Tüm Dosyaları Yönetme İzni Gerekli'),
-        content: const Text('Uygulamanın tüm dosyalarınıza erişebilmesi için ayarlardan "Tüm dosyaları yönetme" izni vermelisiniz.'),
+        title: Text(AppLocalizations.of(context)!.manageAllFilesPermissionTitle),
+        content: Text(AppLocalizations.of(context)!.manageAllFilesPermissionDescription),
         actions: [
           TextButton(
             onPressed: () async {
               await openAppSettings();
               Navigator.of(context).pop();
             },
-            child: const Text('Ayarlara Git'),
+            child: Text(AppLocalizations.of(context)!.goToSettings),
           ),
         ],
       ),

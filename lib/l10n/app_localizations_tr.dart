@@ -163,7 +163,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get galleryAnalysisCompleted => 'Galeri analizi tamamlandı';
 
   @override
-  String get gallerySlogan => 'Swifty: Galerinizi Temizleyin';
+  String get gallerySlogan => 'Galeri Temizliği';
 
   @override
   String get darkTheme => 'Koyu Tema';
@@ -204,4 +204,223 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get zoomHintDescription =>
       'Fotoğrafları daha iyi görmek için iki parmakla yakınlaştırıp uzaklaştırabilirsiniz';
+
+  @override
+  String get photoDetail => 'Fotoğraf Detayı';
+
+  @override
+  String get undoTitle => 'Geri Alma';
+
+  @override
+  String undoMessage(Object count) {
+    return '$count fotoğrafı geri almak istiyor musunuz?';
+  }
+
+  @override
+  String get undoCancel => 'İptal';
+
+  @override
+  String get undoConfirm => 'Geri Al';
+
+  @override
+  String get filePermanentlyDeleted => 'Dosya gerçekten silindi, geri alınamaz';
+
+  @override
+  String get lastPhotoUndone => 'Son silinen fotoğraf geri alındı';
+
+  @override
+  String get undoFeatureComingSoon => 'Geri alma özelliği yakında eklenecek';
+
+  @override
+  String get recentlyDeletedFilesNotFound => 'Silinen dosya bulunamadı';
+
+  @override
+  String get restoreFile => 'Geri Al';
+
+  @override
+  String get fileDetails => 'Dosya Bilgileri';
+
+  @override
+  String get deletedAt => 'Silinme';
+
+  @override
+  String get timeRemaining => 'Kalan süre';
+
+  @override
+  String get close => 'Kapat';
+
+  @override
+  String get fileRestored => 'Dosya geri alındı';
+
+  @override
+  String get fileNotFound => 'Dosya bulunamadı';
+
+  @override
+  String get restoreError => 'Geri alma hatası';
+
+  @override
+  String get galleryOptions => 'Galeri Seçenekleri';
+
+  @override
+  String get androidGallery => 'Android Galerisi';
+
+  @override
+  String get androidGalleryDesc => 'Telefonun kendi galeri uygulamasını aç';
+
+  @override
+  String get recentlyDeleted => 'Son Silinenler';
+
+  @override
+  String get recentlyDeletedDesc => 'Android\'in kendi çöp kutusunu aç';
+
+  @override
+  String get galleryAppNotFound =>
+      'Galeri uygulaması açılamadı. Manuel olarak galeri uygulamasını açabilirsiniz.';
+
+  @override
+  String get trashNotFound =>
+      'Çöp kutusu açılamadı. Manuel olarak dosya yöneticisinden DCIM/.trash klasörüne gidebilirsiniz.';
+
+  @override
+  String get restoreFiles => 'Dosyaları Geri Al';
+
+  @override
+  String get restoreFilesQuestion =>
+      'Silinen dosyaları geri almak istiyor musunuz?';
+
+  @override
+  String get restoreAll => 'Tümünü Geri Al';
+
+  @override
+  String get noFilesToRestore => 'Geri alınacak dosya bulunamadı';
+
+  @override
+  String get filesRestoredSuccessfully => 'Dosyalar başarıyla geri alındı';
+
+  @override
+  String get exitConfirmation => 'Çıkış Onayı';
+
+  @override
+  String exitWithoutReviewing(Object label, Object remaining) {
+    return 'Tüm $label incelemeden çıkmak üzeresiniz. Kalan: $remaining $label. Geri dönerseniz baştan başlamanız gerekecek. Çıkmak istiyor musunuz?';
+  }
+
+  @override
+  String get deleteAndExit => 'Sil ve Çık';
+
+  @override
+  String get exitWithoutDeleting => 'Silmeden Çık';
+
+  @override
+  String filesMovedToTrash(Object count) {
+    return '$count dosya \"Son Silinenler\" klasörüne taşındı. 30 gün boyunca \"Son Silinenler\" ekranından geri alabilirsiniz.';
+  }
+
+  @override
+  String get restore => 'Geri Al';
+
+  @override
+  String get details => 'Detaylar';
+
+  @override
+  String get originalPath => 'Orijinal Yol';
+
+  @override
+  String get trashPath => 'Çöp Kutusu Yolu';
+
+  @override
+  String get expiresAt => 'Süre';
+
+  @override
+  String daysRemaining(Object days, Object hours) {
+    return '$days gün $hours saat kaldı';
+  }
+
+  @override
+  String hoursRemaining(Object hours) {
+    return '$hours saat kaldı';
+  }
+
+  @override
+  String get expiringSoon => 'Süre dolmak üzere';
+
+  @override
+  String get androidTrashFolder => 'Android Çöp Kutusu';
+
+  @override
+  String get androidTrashFolderDesc =>
+      'Dosyalar Android\'in kendi çöp kutusuna taşındı';
+
+  @override
+  String get appTrashFolder => 'Uygulama Çöp Kutusu';
+
+  @override
+  String get appTrashFolderDesc =>
+      'Dosyalar uygulamanın iç çöp kutusuna taşındı';
+
+  @override
+  String get loading => 'Yükleniyor...';
+
+  @override
+  String get loadingPhotos => 'Fotoğraflar yükleniyor...';
+
+  @override
+  String get loadingVideos => 'Videolar yükleniyor...';
+
+  @override
+  String get loadingAlbums => 'Albümler yükleniyor...';
+
+  @override
+  String get pleaseWait => 'Lütfen bekleyin';
+
+  @override
+  String get analyzingGallery => 'Galeri analiz ediliyor...';
+
+  @override
+  String get processingFiles => 'Dosyalar işleniyor...';
+
+  @override
+  String get preparingFiles => 'Dosyalar hazırlanıyor...';
+
+  @override
+  String get photoDeleted => 'Fotoğraf silindi';
+
+  @override
+  String get filesRestored => 'Dosyalar başarıyla geri alındı';
+
+  @override
+  String get videoLoading => 'Video yükleniyor...';
+
+  @override
+  String get exitReviewDialogTitle => 'İnceleme Ekranından Çık';
+
+  @override
+  String get manageAllFilesPermissionTitle => 'Tüm Dosyalar İzni';
+
+  @override
+  String get manageAllFilesPermissionDescription =>
+      'Tüm dosyalarınıza erişim izni gereklidir.';
+
+  @override
+  String get goToSettings => 'Ayarlar\'a Git';
+
+  @override
+  String get back => 'Geri';
+
+  @override
+  String get undo => 'Geri Al';
+
+  @override
+  String get noPhotosFound => 'Bu klasörde fotoğraf bulunamadı';
+
+  @override
+  String get permissionRequired => 'İzin Gerekli';
+
+  @override
+  String get permissionRequiredDescription =>
+      'Galerinize erişim için izin gereklidir. Lütfen cihaz ayarlarınızda etkinleştirin.';
+
+  @override
+  String get noAlbumsFoundDescription =>
+      'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.';
 }

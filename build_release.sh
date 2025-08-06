@@ -66,11 +66,12 @@ if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
     echo "📁 Dosya: build/app/outputs/bundle/release/app-release.aab"
     echo "📊 Boyut: $(ls -lh build/app/outputs/bundle/release/app-release.aab | awk '{print $5}')"
     echo "🔢 Versiyon: $NEW_VERSION"
+    echo "📱 Target SDK: 35 (Android 15)"
     
     # Git commit
     echo "📝 Git commit yapılıyor..."
     git add .
-    git commit -m "v$VERSION_NAME: Yeni sürüm oluşturuldu - $NEW_VERSION"
+    git commit -m "v$VERSION_NAME: Yeni sürüm oluşturuldu - $NEW_VERSION (Target SDK 35)"
     
     echo "🎉 İşlem tamamlandı! AAB dosyası hazır."
 else

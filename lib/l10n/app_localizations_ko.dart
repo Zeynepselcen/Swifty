@@ -161,7 +161,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get galleryAnalysisCompleted => '갤러리 분석 완료';
 
   @override
-  String get gallerySlogan => '사진 갤러리를 가볍게 하세요';
+  String get gallerySlogan => '갤러리 클리너';
 
   @override
   String get darkTheme => '다크 테마';
@@ -199,4 +199,222 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get zoomHintDescription => '더 나은 보기를 위해 두 손가락으로 사진을 확대하고 축소할 수 있습니다';
+
+  @override
+  String get photoDetail => '사진 상세';
+
+  @override
+  String get undoTitle => '실행 취소';
+
+  @override
+  String undoMessage(Object count) {
+    return '$count장의 사진을 실행 취소하시겠습니까?';
+  }
+
+  @override
+  String get undoCancel => '취소';
+
+  @override
+  String get undoConfirm => '실행 취소';
+
+  @override
+  String get filePermanentlyDeleted => '파일이 영구적으로 삭제되어 실행 취소할 수 없습니다';
+
+  @override
+  String get lastPhotoUndone => '마지막 삭제된 사진이 실행 취소되었습니다';
+
+  @override
+  String get undoFeatureComingSoon => '실행 취소 기능이 곧 추가됩니다';
+
+  @override
+  String get recentlyDeletedFilesNotFound => 'No deleted files found';
+
+  @override
+  String get restoreFile => 'Restore';
+
+  @override
+  String get fileDetails => 'File Details';
+
+  @override
+  String get deletedAt => 'Deleted at';
+
+  @override
+  String get timeRemaining => 'Time remaining';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get fileRestored => 'File restored';
+
+  @override
+  String get fileNotFound => 'File not found';
+
+  @override
+  String get restoreError => 'Restore error';
+
+  @override
+  String get galleryOptions => 'Gallery Options';
+
+  @override
+  String get androidGallery => 'Android Gallery';
+
+  @override
+  String get androidGalleryDesc => 'Open your phone\'s own gallery app';
+
+  @override
+  String get recentlyDeleted => 'Recently Deleted';
+
+  @override
+  String get recentlyDeletedDesc => 'Open Android\'s own trash';
+
+  @override
+  String get galleryAppNotFound =>
+      'Gallery app could not be opened. You can open the gallery app manually.';
+
+  @override
+  String get trashNotFound =>
+      'Trash could not be opened. You can go to DCIM/.trash folder from file manager manually.';
+
+  @override
+  String get restoreFiles => 'Restore Files';
+
+  @override
+  String get restoreFilesQuestion => 'Do you want to restore deleted files?';
+
+  @override
+  String get restoreAll => 'Restore All';
+
+  @override
+  String get noFilesToRestore => 'No files to restore';
+
+  @override
+  String get filesRestoredSuccessfully => 'Files restored successfully';
+
+  @override
+  String get exitConfirmation => 'Exit Confirmation';
+
+  @override
+  String exitWithoutReviewing(Object label, Object remaining) {
+    return 'You are about to exit without reviewing all $label. Remaining: $remaining $label. If you go back, you\'ll have to start over. Do you want to exit?';
+  }
+
+  @override
+  String get deleteAndExit => 'Delete and Exit';
+
+  @override
+  String get exitWithoutDeleting => 'Exit Without Deleting';
+
+  @override
+  String filesMovedToTrash(Object count) {
+    return '$count files moved to \"Recently Deleted\" folder. You can restore them within 30 days from the \"Recently Deleted\" screen.';
+  }
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get details => 'Details';
+
+  @override
+  String get originalPath => 'Original Path';
+
+  @override
+  String get trashPath => 'Trash Path';
+
+  @override
+  String get expiresAt => 'Expires at';
+
+  @override
+  String daysRemaining(Object days, Object hours) {
+    return '$days days $hours hours remaining';
+  }
+
+  @override
+  String hoursRemaining(Object hours) {
+    return '$hours hours remaining';
+  }
+
+  @override
+  String get expiringSoon => 'Expiring soon';
+
+  @override
+  String get androidTrashFolder => 'Android Trash Folder';
+
+  @override
+  String get androidTrashFolderDesc =>
+      'Files moved to Android\'s own trash folder';
+
+  @override
+  String get appTrashFolder => 'App Trash Folder';
+
+  @override
+  String get appTrashFolderDesc =>
+      'Files moved to app\'s internal trash folder';
+
+  @override
+  String get loading => 'Loading...';
+
+  @override
+  String get loadingPhotos => 'Loading photos...';
+
+  @override
+  String get loadingVideos => 'Loading videos...';
+
+  @override
+  String get loadingAlbums => 'Loading albums...';
+
+  @override
+  String get pleaseWait => 'Please wait';
+
+  @override
+  String get analyzingGallery => 'Analyzing gallery...';
+
+  @override
+  String get processingFiles => 'Processing files...';
+
+  @override
+  String get preparingFiles => 'Preparing files...';
+
+  @override
+  String get photoDeleted => 'Photo deleted';
+
+  @override
+  String get filesRestored => 'Files restored successfully';
+
+  @override
+  String get videoLoading => 'Loading video...';
+
+  @override
+  String get exitReviewDialogTitle => 'Exit Review Screen';
+
+  @override
+  String get manageAllFilesPermissionTitle => 'Manage All Files Permission';
+
+  @override
+  String get manageAllFilesPermissionDescription =>
+      'Access to all your files is required.';
+
+  @override
+  String get goToSettings => 'Go to Settings';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get noPhotosFound => 'No photos found in this folder';
+
+  @override
+  String get permissionRequired => 'Permission Required';
+
+  @override
+  String get permissionRequiredDescription =>
+      'Permission is required to access your gallery. Please enable it in your device settings.';
+
+  @override
+  String get noAlbumsFoundDescription =>
+      'Gallery access permission granted but no photos or videos found.';
 }

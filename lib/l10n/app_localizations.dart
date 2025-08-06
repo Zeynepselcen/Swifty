@@ -393,7 +393,7 @@ abstract class AppLocalizations {
   /// No description provided for @gallerySlogan.
   ///
   /// In en, this message translates to:
-  /// **'Swifty: Clean Your Gallery'**
+  /// **'Gallery Cleaner'**
   String get gallerySlogan;
 
   /// No description provided for @darkTheme.
@@ -461,6 +461,408 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use two fingers to zoom in and out on photos for better viewing'**
   String get zoomHintDescription;
+
+  /// No description provided for @photoDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo Detail'**
+  String get photoDetail;
+
+  /// No description provided for @undoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoTitle;
+
+  /// No description provided for @undoMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to undo {count} photo(s)?'**
+  String undoMessage(Object count);
+
+  /// No description provided for @undoCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get undoCancel;
+
+  /// No description provided for @undoConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoConfirm;
+
+  /// No description provided for @filePermanentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'File is permanently deleted, cannot be undone'**
+  String get filePermanentlyDeleted;
+
+  /// No description provided for @lastPhotoUndone.
+  ///
+  /// In en, this message translates to:
+  /// **'Last deleted photo undone'**
+  String get lastPhotoUndone;
+
+  /// No description provided for @undoFeatureComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo feature coming soon'**
+  String get undoFeatureComingSoon;
+
+  /// No description provided for @recentlyDeletedFilesNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No deleted files found'**
+  String get recentlyDeletedFilesNotFound;
+
+  /// No description provided for @restoreFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreFile;
+
+  /// No description provided for @fileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'File Details'**
+  String get fileDetails;
+
+  /// No description provided for @deletedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted at'**
+  String get deletedAt;
+
+  /// No description provided for @timeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Time remaining'**
+  String get timeRemaining;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @fileRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'File restored'**
+  String get fileRestored;
+
+  /// No description provided for @fileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'File not found'**
+  String get fileNotFound;
+
+  /// No description provided for @restoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore error'**
+  String get restoreError;
+
+  /// No description provided for @galleryOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery Options'**
+  String get galleryOptions;
+
+  /// No description provided for @androidGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Android Gallery'**
+  String get androidGallery;
+
+  /// No description provided for @androidGalleryDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your phone\'s own gallery app'**
+  String get androidGalleryDesc;
+
+  /// No description provided for @recentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get recentlyDeleted;
+
+  /// No description provided for @recentlyDeletedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Android\'s own trash'**
+  String get recentlyDeletedDesc;
+
+  /// No description provided for @galleryAppNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery app could not be opened. You can open the gallery app manually.'**
+  String get galleryAppNotFound;
+
+  /// No description provided for @trashNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash could not be opened. You can go to DCIM/.trash folder from file manager manually.'**
+  String get trashNotFound;
+
+  /// No description provided for @restoreFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Files'**
+  String get restoreFiles;
+
+  /// No description provided for @restoreFilesQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to restore deleted files?'**
+  String get restoreFilesQuestion;
+
+  /// No description provided for @restoreAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore All'**
+  String get restoreAll;
+
+  /// No description provided for @noFilesToRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'No files to restore'**
+  String get noFilesToRestore;
+
+  /// No description provided for @filesRestoredSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Files restored successfully'**
+  String get filesRestoredSuccessfully;
+
+  /// No description provided for @exitConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Confirmation'**
+  String get exitConfirmation;
+
+  /// No description provided for @exitWithoutReviewing.
+  ///
+  /// In en, this message translates to:
+  /// **'You are about to exit without reviewing all {label}. Remaining: {remaining} {label}. If you go back, you\'ll have to start over. Do you want to exit?'**
+  String exitWithoutReviewing(Object label, Object remaining);
+
+  /// No description provided for @deleteAndExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete and Exit'**
+  String get deleteAndExit;
+
+  /// No description provided for @exitWithoutDeleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Without Deleting'**
+  String get exitWithoutDeleting;
+
+  /// No description provided for @filesMovedToTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files moved to \"Recently Deleted\" folder. You can restore them within 30 days from the \"Recently Deleted\" screen.'**
+  String filesMovedToTrash(Object count);
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get details;
+
+  /// No description provided for @originalPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Path'**
+  String get originalPath;
+
+  /// No description provided for @trashPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash Path'**
+  String get trashPath;
+
+  /// No description provided for @expiresAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires at'**
+  String get expiresAt;
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days {hours} hours remaining'**
+  String daysRemaining(Object days, Object hours);
+
+  /// No description provided for @hoursRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} hours remaining'**
+  String hoursRemaining(Object hours);
+
+  /// No description provided for @expiringSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring soon'**
+  String get expiringSoon;
+
+  /// No description provided for @androidTrashFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Android Trash Folder'**
+  String get androidTrashFolder;
+
+  /// No description provided for @androidTrashFolderDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Files moved to Android\'s own trash folder'**
+  String get androidTrashFolderDesc;
+
+  /// No description provided for @appTrashFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'App Trash Folder'**
+  String get appTrashFolder;
+
+  /// No description provided for @appTrashFolderDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Files moved to app\'s internal trash folder'**
+  String get appTrashFolderDesc;
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
+  /// No description provided for @loadingPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading photos...'**
+  String get loadingPhotos;
+
+  /// No description provided for @loadingVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading videos...'**
+  String get loadingVideos;
+
+  /// No description provided for @loadingAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading albums...'**
+  String get loadingAlbums;
+
+  /// No description provided for @pleaseWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait'**
+  String get pleaseWait;
+
+  /// No description provided for @analyzingGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing gallery...'**
+  String get analyzingGallery;
+
+  /// No description provided for @processingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing files...'**
+  String get processingFiles;
+
+  /// No description provided for @preparingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing files...'**
+  String get preparingFiles;
+
+  /// No description provided for @photoDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo deleted'**
+  String get photoDeleted;
+
+  /// No description provided for @filesRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Files restored successfully'**
+  String get filesRestored;
+
+  /// No description provided for @videoLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading video...'**
+  String get videoLoading;
+
+  /// No description provided for @exitReviewDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Review Screen'**
+  String get exitReviewDialogTitle;
+
+  /// No description provided for @manageAllFilesPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage All Files Permission'**
+  String get manageAllFilesPermissionTitle;
+
+  /// No description provided for @manageAllFilesPermissionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Access to all your files is required.'**
+  String get manageAllFilesPermissionDescription;
+
+  /// No description provided for @goToSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings'**
+  String get goToSettings;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @noPhotosFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos found in this folder'**
+  String get noPhotosFound;
+
+  /// No description provided for @permissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Required'**
+  String get permissionRequired;
+
+  /// No description provided for @permissionRequiredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission is required to access your gallery. Please enable it in your device settings.'**
+  String get permissionRequiredDescription;
+
+  /// No description provided for @noAlbumsFoundDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery access permission granted but no photos or videos found.'**
+  String get noAlbumsFoundDescription;
 }
 
 class _AppLocalizationsDelegate
