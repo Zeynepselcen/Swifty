@@ -41,7 +41,7 @@ class GalleryAlbumListScreen extends StatefulWidget {
 class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with WidgetsBindingObserver {
   // Albüm ve fotoğraf listeleri
   List<_AlbumWithCount> _albums = [];
-  bool _loading = true;
+  bool _loading = false;
   // Yükleme durumu kontrolü için flag'ler
   bool _isLoadingAlbums = false;
   bool _hasInitialized = false;
@@ -266,165 +266,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     'evren': ['universe']
   };
 
-  // Desteklenen diller
-  final Map<String, String> _languages = {
-    'tr': 'Türkçe',
-    'en': 'English',
-    'es': 'Español',
-  };
 
-  // Dillerin bayrakları
-  final Map<String, String> _flags = {
-    'tr': '🇹🇷',
-    'en': '🇬🇧',
-    'es': '🇪🇸',
-  };
 
-  Locale _currentLocale = const Locale('tr');
-  bool _isDarkTheme = false;
 
-  // Dil değiştirme dialogu
-  void _showLanguageDialog() async {
-    final appLoc = AppLocalizations.of(context)!;
-    final entries = _languages.entries.toList();
-    entries.sort((a, b) => a.key == _currentLocale.languageCode ? -1 : b.key == _currentLocale.languageCode ? 1 : 0);
-
-    final selected = await showDialog<String>(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final bgColor = isDark ? Colors.black.withOpacity(0.85) : Colors.white.withOpacity(0.13);
-        final textColor = isDark ? Colors.white : Colors.black87;
-
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Stack(
-            children: [
-              const _WavyBackground(),
-              Center(
-                child: Container(
-                  margin: EdgeInsets.zero,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(32),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    width: 340,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              appLoc.languageSelect,
-                              style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 22),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.close, color: textColor),
-                              onPressed: () => Navigator.of(context).pop(),
-                              tooltip: appLoc.cancel,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          appLoc.pleaseSelectLanguage,
-                          style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 15),
-                        ),
-                        const SizedBox(height: 18),
-                        SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: entries.map((e) {
-                              final isSelected = _currentLocale.languageCode == e.key;
-                              return AnimatedScale(
-                                scale: isSelected ? 1.04 : 1.0,
-                                duration: const Duration(milliseconds: 180),
-                                curve: Curves.easeOut,
-                                child: AnimatedOpacity(
-                                  opacity: isSelected ? 1.0 : 0.85,
-                                  duration: const Duration(milliseconds: 180),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.of(context).pop(e.key),
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(vertical: 8),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? (isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.08))
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(18),
-                                        border: isSelected ? Border.all(color: textColor, width: 2) : null,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Text(_flags[e.key] ?? '', style: const TextStyle(fontSize: 32)),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: Text(
-                                              e.value,
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                color: textColor,
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                              ),
-                                            ),
-                                          ),
-                                          if (isSelected) Icon(Icons.check, color: textColor, size: 26),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (selected != null && selected != _currentLocale.languageCode) {
-      setState(() {
-        _currentLocale = Locale(selected);
-        _forceReloadCounter++; // Hot reload için zorlama
-      });
-      widget.onLocaleChanged?.call(Locale(selected));
-      try {
-        HapticFeedback.mediumImpact();
-      } catch (_) {}
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${appLoc.languageChangedTo} ${_languages[selected]}')),
-      );
-      
-      // Dil değişikliği sonrası UI'ı zorla yenile
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _forceReloadCounter++;
-          });
-        }
-      });
-    }
-  }
 
   // RewardedAd ile ilgili kodları yorum satırına al
   /*
@@ -464,7 +308,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _selectedLanguage = widget.currentLocale?.languageCode ?? 'tr';
-    _currentLocale = widget.currentLocale ?? const Locale('tr');
     _initializeApp();
     // Hot reload için zorlama
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1155,6 +998,31 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Geri butonu - sol üst köşe
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, left: 16, bottom: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
                 // Analiz tamamlandı mesajı - DEVRE DIŞI
                 // if (_analysisCompleted && !_isVideoMode)
                 //   Padding(
@@ -1301,10 +1169,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             ),
                           ],
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                             decoration: BoxDecoration(
                               color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.white, width: 1.5),
                             ),
                             child: Row(
@@ -1320,7 +1188,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                                     style: const TextStyle(
                                       color: Colors.white, 
                                       fontWeight: FontWeight.w700, 
-                                      fontSize: 16,
+                                      fontSize: 15,
                                       letterSpacing: 0.8,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -1346,7 +1214,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: _viewType == ViewType.folder 
                                     ? Colors.white.withOpacity(0.3)
@@ -1373,7 +1241,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                                       fontWeight: _viewType == ViewType.folder 
                                           ? FontWeight.bold 
                                           : FontWeight.normal,
-                                      fontSize: 11,
+                                      fontSize: 15,
                                     ),
                                   ),
                                 ],
@@ -1389,7 +1257,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: _viewType == ViewType.date 
                                     ? Colors.white.withOpacity(0.3)
@@ -1416,7 +1284,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                                       fontWeight: _viewType == ViewType.date 
                                           ? FontWeight.bold 
                                           : FontWeight.normal,
-                                      fontSize: 11,
+                                      fontSize: 15,
                                     ),
                                   ),
                                 ],

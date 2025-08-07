@@ -65,10 +65,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
         );
       } else {
         // Daha önce gösterilmişse direkt ana ekrana geç
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/main');
       }
     }
   }
