@@ -232,58 +232,110 @@ class GalleryService {
     List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
     
-    // Tarihsel görünüm için ultra hızlı yükleme optimizasyonu
-    final actualLimit = limit ?? 150; // Maksimum 150 fotoğraf yükle (çok daha hızlı)
-    
-    // Sadece en büyük 2 albümden hızlıca fotoğraf topla
-    final sortedAlbums = List<AssetPathEntity>.from(albums);
-    final albumCounts = await Future.wait(sortedAlbums.map((a) => a.assetCountAsync));
-    
-    // Albümleri boyutlarına göre sırala (en büyük önce)
-    final albumsWithCounts = List.generate(
-      sortedAlbums.length, 
-      (i) => {'album': sortedAlbums[i], 'count': albumCounts[i]}
-    );
-    albumsWithCounts.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
-    
-    for (final albumData in albumsWithCounts.take(2)) { // Sadece en büyük 2 albüm
-      final album = albumData['album'] as AssetPathEntity;
-      final totalCount = albumData['count'] as int;
-      final loadCount = (totalCount * 0.03).ceil().clamp(1, 20); // Her albümden max 20 fotoğraf
+    // Eğer limit belirtilmişse hızlı yükleme, yoksa tüm fotoğrafları yükle
+    if (limit != null && limit <= 500) {
+      // Hızlı yükleme modu (500'den az fotoğraf istenirse)
+      final actualLimit = limit;
       
-      final photos = await album.getAssetListPaged(page: 0, size: loadCount);
+      // Sadece en büyük 2 albümden hızlıca fotoğraf topla
+      final sortedAlbums = List<AssetPathEntity>.from(albums);
+      final albumCounts = await Future.wait(sortedAlbums.map((a) => a.assetCountAsync));
       
-      // Thumbnail boyutunu çok küçült (ultra hızlı yükleme)
-      final futures = photos.take(loadCount).map((asset) async {
-        try {
-          final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150)); // 200'den 150'ye
-          
-          if (thumb != null) {
-            // Hash hesaplamayı basitleştir (çok daha hızlı)
-            final hash = asset.id; // MD5 yerine asset ID kullan
-            return PhotoItem(
-              id: asset.id, 
-              thumb: thumb, 
-              date: asset.createDateTime, 
-              hash: hash, 
-              type: MediaType.image, 
-              path: null, // Path'i şimdilik null bırak (çok daha hızlı)
-              name: asset.title ?? 'Unknown',
-            );
+      // Albümleri boyutlarına göre sırala (en büyük önce)
+      final albumsWithCounts = List.generate(
+        sortedAlbums.length, 
+        (i) => {'album': sortedAlbums[i], 'count': albumCounts[i]}
+      );
+      albumsWithCounts.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+      
+      for (final albumData in albumsWithCounts.take(2)) {
+        final album = albumData['album'] as AssetPathEntity;
+        final totalCount = albumData['count'] as int;
+        final loadCount = (totalCount * 0.03).ceil().clamp(1, 20);
+        
+        final photos = await album.getAssetListPaged(page: 0, size: loadCount);
+        
+        final futures = photos.take(loadCount).map((asset) async {
+          try {
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+            
+            if (thumb != null) {
+              final hash = asset.id;
+              return PhotoItem(
+                id: asset.id, 
+                thumb: thumb, 
+                date: asset.createDateTime, 
+                hash: hash, 
+                type: MediaType.image, 
+                path: null,
+                name: asset.title ?? 'Unknown',
+              );
+            }
+          } catch (e) {
+            // Hata olursa geç
           }
-        } catch (e) {
-          // Hata olursa geç, hızlı devam et
+          return null;
+        });
+        
+        final batchResults = await Future.wait(futures);
+        result.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+        
+        if (result.length >= actualLimit) {
+          result = result.take(actualLimit).toList();
+          break;
         }
-        return null;
+      }
+    } else {
+      // Akıllı tam yükleme - Tüm fotoğrafları getir ama SÜPER HIZLI
+      
+      // Tüm albümleri paralel olarak yükle
+      final albumFutures = albums.map((album) async {
+        final List<PhotoItem> albumResult = [];
+        final totalCount = await album.assetCountAsync;
+        
+        // Büyük albümler için optimize edilmiş batch yükleme
+        final batchSize = 100; // Daha büyük batch (daha hızlı)
+        final totalBatches = (totalCount / batchSize).ceil();
+        
+        for (int page = 0; page < totalBatches; page++) {
+          final photos = await album.getAssetListPaged(page: page, size: batchSize);
+          
+          // Thumbnail boyutunu küçült ve path'i atla (çok daha hızlı)
+          final futures = photos.map((asset) async {
+            try {
+              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150)); // Küçük thumbnail
+              
+              if (thumb != null) {
+                final hash = asset.id; // Basit hash
+                return PhotoItem(
+                  id: asset.id, 
+                  thumb: thumb, 
+                  date: asset.createDateTime, 
+                  hash: hash, 
+                  type: MediaType.image, 
+                  path: null, // Path'i atla (çok daha hızlı)
+                  name: asset.title ?? 'Unknown',
+                );
+              }
+            } catch (e) {
+              // Hata olursa sessizce geç
+            }
+            return null;
+          });
+          
+          final batchResults = await Future.wait(futures);
+          albumResult.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+        }
+        
+        return albumResult;
       });
       
-      final batchResults = await Future.wait(futures);
-      result.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+      // Tüm albümleri paralel olarak bekle
+      final allAlbumResults = await Future.wait(albumFutures);
       
-      // Yeterli fotoğraf toplandıysa dur
-      if (result.length >= actualLimit) {
-        result = result.take(actualLimit).toList();
-        break;
+      // Sonuçları birleştir
+      for (final albumResult in allAlbumResults) {
+        result.addAll(albumResult);
       }
     }
     

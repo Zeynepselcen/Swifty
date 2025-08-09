@@ -1200,8 +1200,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                                     style: const TextStyle(
                                       color: Colors.white, 
                                       fontWeight: FontWeight.w700, 
-                                      fontSize: 15,
-                                      letterSpacing: 0.8,
+                                      fontSize: 12,
+                                      letterSpacing: 0.5,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1686,6 +1686,20 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Optimized thumbnail builder with lazy loading
   Widget _buildAlbumThumbnail(AssetPathEntity album) {
+    // Video modunda hiç resim gösterme, sadece ikon
+    if (_isVideoMode) {
+      return Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.videocam, color: Colors.white, size: 28),
+      );
+    }
+    
+    // Fotoğraf modunda normal thumbnail göster
     return FutureBuilder<Uint8List?>(
       future: _getAlbumThumbnail(album),
       builder: (context, snap) {
