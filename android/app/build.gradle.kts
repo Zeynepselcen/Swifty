@@ -32,7 +32,7 @@ android {
         applicationId = "com.swifty.gallerycleaner"
         minSdk = 21
         targetSdk = 35
-        versionCode = 60
+        versionCode = 61
         versionName = "1.3.17"
     }
 
