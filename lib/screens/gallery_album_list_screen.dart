@@ -1457,7 +1457,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   Widget _buildMonthlyView() {
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
-        future: GalleryService.loadPhotos(),
+        future: _isVideoMode ? GalleryService.loadVideos() : GalleryService.loadPhotos(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -1466,8 +1466,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           }
           
           if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            // Fotoğrafları aylara göre grupla
-            final groupedPhotos = GalleryService.groupPhotosByMonth(snapshot.data!);
+            // Video/Fotoğrafları aylara göre grupla
+            final groupedPhotos = _isVideoMode 
+                ? GalleryService.groupVideosByMonth(snapshot.data!)
+                : GalleryService.groupPhotosByMonth(snapshot.data!);
             _photosByMonth = groupedPhotos;
             
             return ListView.builder(
@@ -1484,7 +1486,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: ListTile(
-                    leading: _buildMonthThumbnail(photos),
+                    leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
                     title: Text(
                       monthKey,
                       style: const TextStyle(
@@ -1494,7 +1496,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                       ),
                     ),
                     subtitle: Text(
-                      '${photos.length} fotoğraf',
+                      '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 15,
@@ -1554,7 +1556,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             borderRadius: BorderRadius.circular(16),
           ),
           child: ListTile(
-            leading: _buildMonthThumbnail(photos),
+            leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
             title: Text(
               monthKey,
               style: const TextStyle(
@@ -1564,7 +1566,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               ),
             ),
             subtitle: Text(
-              '${photos.length} fotoğraf',
+              '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 15,
@@ -1686,17 +1688,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Optimized thumbnail builder with lazy loading
   Widget _buildAlbumThumbnail(AssetPathEntity album) {
-    // Video modunda hiç resim gösterme, sadece ikon
+    // Video modunda hiçbir görsel eleman gösterme
     if (_isVideoMode) {
-      return Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.videocam, color: Colors.white, size: 28),
-      );
+      return const SizedBox(width: 60, height: 60); // Boş alan
     }
     
     // Fotoğraf modunda normal thumbnail göster
@@ -1758,7 +1752,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     
     final future = album.getAssetListPaged(page: 0, size: 1)
         .then((assets) => assets.isNotEmpty 
-            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(200, 200)) 
+            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(400, 400)) 
             : null)
         .whenComplete(() => _loadingThumbnails.remove(album.id));
     
@@ -1777,6 +1771,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         // Mod değişkenini güncelle
         setState(() {
           _isVideoMode = !isPhoto;
+          // Aylık görünüm cache'ini temizle (video/fotoğraf modları farklı)
+          _photosByMonth.clear();
         });
         
         // Veri türü değiştiği için her zaman yeni yükleme yap

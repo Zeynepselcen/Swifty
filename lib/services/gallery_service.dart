@@ -257,7 +257,7 @@ class GalleryService {
         
         final futures = photos.take(loadCount).map((asset) async {
           try {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(500, 500)); // 150'den 500'e yüksek kalite
             
             if (thumb != null) {
               final hash = asset.id;
@@ -300,10 +300,10 @@ class GalleryService {
         for (int page = 0; page < totalBatches; page++) {
           final photos = await album.getAssetListPaged(page: page, size: batchSize);
           
-          // Thumbnail boyutunu küçült ve path'i atla (çok daha hızlı)
+          // Yüksek kaliteli thumbnail (tarihsel görünüm için)
           final futures = photos.map((asset) async {
             try {
-              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150)); // Küçük thumbnail
+              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(600, 600)); // Yüksek kalite thumbnail
               
               if (thumb != null) {
                 final hash = asset.id; // Basit hash
@@ -553,8 +553,10 @@ class GalleryService {
         // Android'in "Recently Deleted" klasörüne taşı
         // Bu işlem fotoğrafları gerçekten siler ama Android'in "Recently Deleted" klasörüne taşır
         // 30 gün sonra otomatik olarak kalıcı silinir
-        await PhotoManager.editor.deleteWithIds(ids);
-        print('${ids.length} fotoğraf "Son Silinenler" klasörüne taşındı');
+        print('DEBUG: Silme işlemi başlatılıyor - ${ids.length} adet ID');
+        final result = await PhotoManager.editor.deleteWithIds(ids);
+        print('DEBUG: Silme işlemi sonucu: $result');
+        print('DEBUG: ${ids.length} fotoğraf "Son Silinenler" klasörüne taşındı');
         return true; // Başarılı
       } catch (e) {
         print('Error moving photos to recently deleted: $e');

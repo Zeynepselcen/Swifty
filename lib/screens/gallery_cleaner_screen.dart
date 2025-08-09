@@ -867,10 +867,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
           ),
                   // Çık ve Sil butonu (sadece seçili fotoğraf varsa göster)
 
-            // Geri Al ve Sil butonları (pembe alanın içinde, sadece fotoğraf gösterimi sırasında)
+            // Geri Al ve Sil butonları (pembe alanın ortasında, hiçbir şeyle çakışmasın)
             if (deletedPhotos.isNotEmpty && currentIndex < photos.length)
               Positioned(
-                top: 120,
+                top: 80, // Pembe alanın ortasına 
                 left: 20,
                 right: 20,
                 child: Row(
@@ -891,8 +891,15 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.8),
+                          color: Colors.blue.withOpacity(0.9), // Daha opak
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: const Text(
                           'Geri Al',
@@ -928,24 +935,68 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         );
 
                         if (confirmed == true) {
-                          final success = await GalleryService.moveToRecentlyDeleted(toDelete);
-                          if (success) {
-                            final deletedCount = deletedPhotos.length;
-                            RecentlyDeletedManager().clear();
-                            setState(() {
-                              deletedPhotos.clear();
-                              toDelete.clear();
-                            });
-                            widget.onPhotosDeleted?.call(deletedCount);
-                            Navigator.of(context).pop(); // Ana sayfaya dön
+                          try {
+                            print('DEBUG: Silme onaylandı, ${toDelete.length} adet fotoğraf silinecek');
+                            final success = await GalleryService.moveToRecentlyDeleted(toDelete);
+                            print('DEBUG: Silme işlemi sonucu: $success');
+                            
+                            if (success) {
+                              final deletedCount = deletedPhotos.length;
+                              RecentlyDeletedManager().clear();
+                              setState(() {
+                                deletedPhotos.clear();
+                                toDelete.clear();
+                              });
+                              widget.onPhotosDeleted?.call(deletedCount);
+                              
+                              // Başarı mesajı göster
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('$deletedCount fotoğraf/video başarıyla silindi'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                              
+                              // Ana sayfaya dön
+                              Navigator.of(context).pop();
+                            } else {
+                              // Hata mesajı göster
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Silme işlemi başarısız oldu'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            print('DEBUG: Silme işlemi hatası: $e');
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Silme hatası: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
                         }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
+                          color: Colors.red.withOpacity(0.9), // Daha opak
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Text(
                           'Sil (${deletedPhotos.length})',
@@ -963,7 +1014,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             // Üst butonlar (sadece fotoğraf gösterimi sırasında)
             if (currentIndex < photos.length)
               Positioned(
-                top: 80,
+                top: 40, // 80'den 40'a taşıdık (geri al/sil butonlarıyla çakışmasın)
                 left: 20,
                 right: 20,
                 child: Row(
@@ -1098,16 +1149,53 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                             );
 
                                             if (confirmed == true) {
-                                              final success = await GalleryService.moveToRecentlyDeleted(toDelete);
-                                              if (success) {
-                                                final deletedCount = deletedPhotos.length;
-                                                RecentlyDeletedManager().clear();
-                                                setState(() {
-                                                  deletedPhotos.clear();
-                                                  toDelete.clear();
-                                                });
-                                                widget.onPhotosDeleted?.call(deletedCount);
-                                                Navigator.of(context).pop(); // Ana sayfaya dön
+                                              try {
+                                                print('DEBUG: Kalıcı silme onaylandı, ${toDelete.length} adet fotoğraf silinecek');
+                                                final success = await GalleryService.moveToRecentlyDeleted(toDelete);
+                                                print('DEBUG: Kalıcı silme işlemi sonucu: $success');
+                                                
+                                                if (success) {
+                                                  final deletedCount = deletedPhotos.length;
+                                                  RecentlyDeletedManager().clear();
+                                                  setState(() {
+                                                    deletedPhotos.clear();
+                                                    toDelete.clear();
+                                                  });
+                                                  widget.onPhotosDeleted?.call(deletedCount);
+                                                  
+                                                  // Başarı mesajı göster
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('$deletedCount fotoğraf/video başarıyla silindi'),
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    );
+                                                  }
+                                                  
+                                                  // Ana sayfaya dön
+                                                  Navigator.of(context).pop();
+                                                } else {
+                                                  // Hata mesajı göster
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text('Silme işlemi başarısız oldu'),
+                                                        backgroundColor: Colors.red,
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                print('DEBUG: Kalıcı silme işlemi hatası: $e');
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Silme hatası: $e'),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
                                               }
                                             }
                                           },
@@ -1155,7 +1243,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                               ],
                                             ),
                                             child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(20),
+                                              borderRadius: BorderRadius.circular(12), // 20'den 12'ye küçültüldü
                                             child: CardSwiper(
                                               key: ValueKey(currentIndex),
                                               controller: _swiperController,
@@ -1258,9 +1346,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                       children: [
                                                         Image.memory(
                                                           photo.thumb,
-                                                          fit: BoxFit.cover,
-                                                          width: maxCardWidth - 20,
-                                                          height: maxCardHeight - 20,
+                                                          fit: BoxFit.contain, // cover'dan contain'e değiştirildi (kırpmasın)
+                                                          width: maxCardWidth - 10,  // 20'den 10'a (daha az margin)
+                                                          height: maxCardHeight - 10, // 20'den 10'a (daha az margin)
                                                         ),
                                                                                                                 // Dosya boyutu yazısı
                                                         Positioned(
