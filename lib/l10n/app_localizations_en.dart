@@ -84,6 +84,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get name => 'name';
 
   @override
+  String photoCount(Object count) {
+    return '$count photos';
+  }
+
+  @override
   String get largestSize => 'largest size';
 
   @override
@@ -426,4 +431,46 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noAlbumsFoundDescription =>
       'Gallery access permission granted but no photos or videos found.';
+
+  @override
+  String get onboardingTitleDetail => 'Detailed Review';
+
+  @override
+  String get onboardingDescDetail =>
+      'Tap on photos to zoom in and examine details. Easy access with the zoom icon!';
+
+  @override
+  String get aboutTitle => 'About the App';
+
+  @override
+  String get aboutDescription =>
+      'Manage your photos easily with Swifty Gallery Cleaner!';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get themeDescription => 'Change appearance';
+
+  @override
+  String get aboutTakeTour =>
+      'Take a tour to learn more about the app features';
+
+  @override
+  String get aboutTakeTourButton => 'Start Tour';
+
+  @override
+  String get videoGallery => 'Video Gallery';
+
+  @override
+  String get photoGallery => 'Photo Gallery';
+
+  @override
+  String get swipeToDelete => 'Swipe to delete';
 }

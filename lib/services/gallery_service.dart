@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import '../models/photo_item.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:typed_data'; // Uint8List için eklendi
 
 // --- Galeri İzin Kontrolü için eklenen kod kaldırıldı, utils klasörüne taşındı. ---
 
@@ -193,70 +193,96 @@ class GalleryService {
     return sortedMap;
   }
 
+  static Map<String, List<PhotoItem>> groupVideosByMonth(List<PhotoItem> videos) {
+    final Map<String, List<PhotoItem>> grouped = {};
+    final months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    for (final video in videos) {
+      final monthKey = _getMonthYearString(video.date);
+      if (!grouped.containsKey(monthKey)) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey]!.add(video);
+    }
+    for (final key in grouped.keys) {
+      grouped[key]!.shuffle();
+    }
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final aMonth = a.split(' ')[0];
+        final aYear = a.split(' ')[1];
+        final aMonthIndex = months.indexOf(aMonth) + 1;
+        final aDate = DateTime.parse('$aYear-${aMonthIndex.toString().padLeft(2, '0')}-01');
+        final bMonth = b.split(' ')[0];
+        final bYear = b.split(' ')[1];
+        final bMonthIndex = months.indexOf(bMonth) + 1;
+        final bDate = DateTime.parse('$bYear-${bMonthIndex.toString().padLeft(2, '0')}-01');
+        return bDate.compareTo(aDate);
+      });
+    final sortedMap = <String, List<PhotoItem>>{};
+    for (final key in sortedKeys) {
+      sortedMap[key] = grouped[key]!;
+    }
+    return sortedMap;
+  }
+
   static Future<List<PhotoItem>> loadPhotos({int? limit}) async {
     List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
     
-    // Tüm albümleri paralel olarak işle
-    final albumFutures = albums.map((album) async {
-      final List<PhotoItem> albumResult = [];
+    // Tarihsel görünüm için ultra hızlı yükleme optimizasyonu
+    final actualLimit = limit ?? 150; // Maksimum 150 fotoğraf yükle (çok daha hızlı)
+    
+    // Sadece en büyük 2 albümden hızlıca fotoğraf topla
+    final sortedAlbums = List<AssetPathEntity>.from(albums);
+    final albumCounts = await Future.wait(sortedAlbums.map((a) => a.assetCountAsync));
+    
+    // Albümleri boyutlarına göre sırala (en büyük önce)
+    final albumsWithCounts = List.generate(
+      sortedAlbums.length, 
+      (i) => {'album': sortedAlbums[i], 'count': albumCounts[i]}
+    );
+    albumsWithCounts.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    
+    for (final albumData in albumsWithCounts.take(2)) { // Sadece en büyük 2 albüm
+      final album = albumData['album'] as AssetPathEntity;
+      final totalCount = albumData['count'] as int;
+      final loadCount = (totalCount * 0.03).ceil().clamp(1, 20); // Her albümden max 20 fotoğraf
       
-      // Her albüm için batch loading kullan
-      final totalCount = await album.assetCountAsync;
-      final batchSize = 200; // Optimal batch size - hızlı ve stabil
-      final totalBatches = (totalCount / batchSize).ceil();
+      final photos = await album.getAssetListPaged(page: 0, size: loadCount);
       
-      for (int page = 0; page < totalBatches; page++) {
-        final photos = await album.getAssetListPaged(page: page, size: batchSize);
-        
-        // Her batch'i paralel olarak işle
-        final futures = photos.map((asset) async {
-          try {
-            // Thumbnail boyutunu küçült (daha hızlı yükleme)
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
-            String? path;
-            
-            // Path'i paralel olarak al
-            final pathFuture = asset.file.then((file) => file?.path);
-            path = await pathFuture;
-            
-            if (thumb != null) {
-              final hash = md5.convert(thumb).toString();
-              return PhotoItem(
-                id: asset.id, 
-                thumb: thumb, 
-                date: asset.createDateTime, 
-                hash: hash, 
-                type: MediaType.image, 
-                path: path
-              );
-            }
-          } catch (e) {
-            print('Fotoğraf yükleme hatası: $e');
+      // Thumbnail boyutunu çok küçült (ultra hızlı yükleme)
+      final futures = photos.take(loadCount).map((asset) async {
+        try {
+          final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150)); // 200'den 150'ye
+          
+          if (thumb != null) {
+            // Hash hesaplamayı basitleştir (çok daha hızlı)
+            final hash = asset.id; // MD5 yerine asset ID kullan
+            return PhotoItem(
+              id: asset.id, 
+              thumb: thumb, 
+              date: asset.createDateTime, 
+              hash: hash, 
+              type: MediaType.image, 
+              path: null, // Path'i şimdilik null bırak (çok daha hızlı)
+              name: asset.title ?? 'Unknown',
+            );
           }
-          return null;
-        });
-        
-        final batchResults = await Future.wait(futures);
-        albumResult.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
-        
-        // Limit kontrolü
-        if (limit != null && albumResult.length >= limit) {
-          return albumResult.take(limit).toList();
+        } catch (e) {
+          // Hata olursa geç, hızlı devam et
         }
-      }
+        return null;
+      });
       
-      return albumResult;
-    });
-    
-    // Tüm albümleri paralel olarak yükle
-    final allAlbumResults = await Future.wait(albumFutures);
-    
-    // Sonuçları birleştir
-    for (final albumResult in allAlbumResults) {
-      result.addAll(albumResult);
-      if (limit != null && result.length >= limit) {
-        result = result.take(limit).toList();
+      final batchResults = await Future.wait(futures);
+      result.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+      
+      // Yeterli fotoğraf toplandıysa dur
+      if (result.length >= actualLimit) {
+        result = result.take(actualLimit).toList();
         break;
       }
     }
@@ -288,7 +314,7 @@ class GalleryService {
         // Her batch'i paralel olarak işle
         final futures = photos.map((asset) async {
           try {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(600, 600));
             String? path;
             final file = await asset.file;
             if (file != null) path = file.path;
@@ -300,7 +326,8 @@ class GalleryService {
                 date: asset.createDateTime, 
                 hash: hash, 
                 type: MediaType.image, 
-                path: path
+                path: path,
+                name: asset.title ?? 'Unknown'
               );
             }
           } catch (e) {
@@ -340,25 +367,28 @@ class GalleryService {
         // Her batch'i paralel olarak işle
         final futures = videos.map((asset) async {
           try {
-            // Thumbnail boyutunu küçült (daha hızlı yükleme)
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(150, 150));
+            // Video klasörlerinde hiç resim gösterme - sadece metadata al
             String? path;
             
-            // Path'i paralel olarak al
-            final pathFuture = asset.file.then((file) => file?.path);
-            path = await pathFuture;
-            
-            if (thumb != null) {
-              final hash = md5.convert(thumb).toString();
-              return PhotoItem(
-                id: asset.id, 
-                thumb: thumb, 
-                date: asset.createDateTime, 
-                hash: hash, 
-                type: MediaType.video, 
-                path: path
-              );
+            try {
+              // Path'i hızlı al (opsiyonel)
+              final file = await asset.file;
+              path = file?.path;
+            } catch (e) {
+              path = null; // Hata olursa null bırak
             }
+            
+            // Hash hesaplamayı basitleştir (çok daha hızlı)
+            final hash = asset.id; // MD5 yerine asset ID kullan
+            return PhotoItem(
+              id: asset.id, 
+              thumb: Uint8List(0), // Boş thumbnail
+              date: asset.createDateTime, 
+              hash: hash, 
+              type: MediaType.video, 
+              path: path,
+              name: asset.title ?? 'Unknown',
+            );
           } catch (e) {
             print('Video yükleme hatası: $e');
           }
@@ -405,14 +435,26 @@ class GalleryService {
     if (album != null) {
       final videos = await album.getAssetListPaged(page: 0, size: 1000);
       for (final asset in videos) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+        // Video klasörlerinde hiç resim gösterme - sadece metadata al
         String? path;
-        final file = await asset.file;
-        if (file != null) path = file.path;
-        if (thumb != null) {
-          final hash = md5.convert(thumb).toString();
-          result.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: hash, type: MediaType.video, path: path));
+        try {
+          final file = await asset.file;
+          if (file != null) path = file.path;
+        } catch (e) {
+          path = null; // Hata olursa null bırak
         }
+        
+        // Hash hesaplamayı basitleştir (çok daha hızlı)
+        final hash = asset.id; // MD5 yerine asset ID kullan
+        result.add(PhotoItem(
+          id: asset.id, 
+          thumb: Uint8List(0), // Boş thumbnail
+          date: asset.createDateTime, 
+          hash: hash, 
+          type: MediaType.video, 
+          path: path,
+          name: asset.title ?? 'Unknown'
+        ));
       }
     }
     return result;
@@ -428,10 +470,69 @@ class GalleryService {
   }
 
   static Future<void> deletePhoto(String id) async {
-    final asset = await AssetEntity.fromId(id);
-    if (asset != null) {
-      await PhotoManager.editor.deleteWithIds([id]);
+    // Check for necessary permissions
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      final asset = await AssetEntity.fromId(id);
+      if (asset != null) {
+        await PhotoManager.editor.deleteWithIds([id]);
+      }
+    } else {
+      print('Permission not granted to delete photo.');
     }
+  }
+
+  static Future<void> deletePhotos(List<String> ids) async {
+    // Check for necessary permissions
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      // Toplu silme işlemi - tek seferde tüm ID'leri gönder
+      await PhotoManager.editor.deleteWithIds(ids);
+    } else {
+      print('Permission not granted to delete photos.');
+    }
+  }
+
+  static Future<bool> moveToRecentlyDeleted(List<String> ids) async {
+    // Check for necessary permissions
+    final permission = await PhotoManager.requestPermissionExtend();
+    if (permission.isAuth) {
+      try {
+        // Android'in "Recently Deleted" klasörüne taşı
+        // Bu işlem fotoğrafları gerçekten siler ama Android'in "Recently Deleted" klasörüne taşır
+        // 30 gün sonra otomatik olarak kalıcı silinir
+        await PhotoManager.editor.deleteWithIds(ids);
+        print('${ids.length} fotoğraf "Son Silinenler" klasörüne taşındı');
+        return true; // Başarılı
+      } catch (e) {
+        print('Error moving photos to recently deleted: $e');
+        return false; // Hata durumunda false döndür
+      }
+    } else {
+      print('Permission not granted to move photos to recently deleted.');
+      return false; // İzin yok
+    }
+  }
+
+
+
+  // Uygulama içi "Son Silinenler" klasörüne taşı (gerçek silme yapma)
+  static Future<bool> moveToAppRecentlyDeleted(List<String> ids) async {
+    try {
+      // Burada gerçek silme yapmıyoruz, sadece uygulama içinde saklıyoruz
+      // Fotoğraflar gerçek galeride kalıyor, sadece uygulama içinde "silinmiş" olarak işaretleniyor
+      print('${ids.length} fotoğraf uygulama "Son Silinenler" klasörüne taşındı');
+      return true; // Başarılı
+    } catch (e) {
+      print('Error moving photos to app recently deleted: $e');
+      return false; // Hata durumunda false döndür
+    }
+  }
+
+  // Gerçekten galeriden sil (kalıcı silme) - bu fonksiyonu kullanmayacağız
+  static Future<bool> permanentlyDeleteFromGallery(List<String> ids) async {
+    // Bu fonksiyon artık kullanılmayacak, sadece uygulama içi silme yapılacak
+    return false;
   }
 
   static Future<String> getFilePath(String id) async {

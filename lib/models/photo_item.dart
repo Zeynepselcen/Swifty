@@ -9,6 +9,7 @@ class PhotoItem {
   final String hash;
   final MediaType type;
   final String? path;
+  final String name;
 
-  PhotoItem({required this.id, required this.thumb, required this.date, required this.hash, required this.type, this.path});
+  PhotoItem({required this.id, required this.thumb, required this.date, required this.hash, required this.type, this.path, required this.name});
 } 

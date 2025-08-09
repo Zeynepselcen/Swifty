@@ -84,6 +84,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get name => 'isim';
 
   @override
+  String photoCount(Object count) {
+    return '$count fotoğraf';
+  }
+
+  @override
   String get largestSize => 'en büyük boyut';
 
   @override
@@ -426,4 +431,46 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get noAlbumsFoundDescription =>
       'Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.';
+
+  @override
+  String get onboardingTitleDetail => 'Detaylı İnceleme';
+
+  @override
+  String get onboardingDescDetail =>
+      'Fotoğraflara tıklayarak yakınlaştır ve detayları incele. Zoom ikonu ile kolay erişim!';
+
+  @override
+  String get aboutTitle => 'Uygulama Hakkında';
+
+  @override
+  String get aboutDescription =>
+      'Swifty Galeri Temizliği ile fotoğraflarınızı kolayca yönetin!';
+
+  @override
+  String get settings => 'Ayarlar';
+
+  @override
+  String get language => 'Dil';
+
+  @override
+  String get theme => 'Tema';
+
+  @override
+  String get themeDescription => 'Görünümü değiştir';
+
+  @override
+  String get aboutTakeTour =>
+      'Uygulama özelliklerini öğrenmek için turu başlatın';
+
+  @override
+  String get aboutTakeTourButton => 'Turu Başlat';
+
+  @override
+  String get videoGallery => 'Video Galerisi';
+
+  @override
+  String get photoGallery => 'Fotoğraf Galerisi';
+
+  @override
+  String get swipeToDelete => 'Silmek için kaydır';
 }

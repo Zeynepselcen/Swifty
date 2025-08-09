@@ -101,7 +101,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$fileName geri alındı (DCIM/Restored klasörüne)'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.blue, // Changed from green to blue
           ),
         );
 
@@ -166,13 +166,13 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final hours = ((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).floor();
     
     if (days > 0) {
-      final daysText = appLoc.daysRemaining as String;
+      final daysText = appLoc.daysRemaining.toString();
       return daysText.replaceAll('{days}', '$days').replaceAll('{hours}', '$hours');
     } else if (hours > 0) {
-      final hoursText = appLoc.hoursRemaining as String;
+      final hoursText = appLoc.hoursRemaining.toString();
       return hoursText.replaceAll('{hours}', '$hours');
     } else {
-      return appLoc.expiringSoon as String;
+      return appLoc.expiringSoon.toString();
     }
   }
 
@@ -280,7 +280,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                             Text(
                               _getTimeRemaining(expiresAt),
                               style: TextStyle(
-                                color: _getTimeRemaining(expiresAt).contains(AppLocalizations.of(context)!.timeRemaining.split(' ').first)
+                                color: _getTimeRemaining(expiresAt).contains(AppLocalizations.of(context)!.timeRemaining.toString().split(' ').first)
                                     ? Colors.green
                                     : Colors.orange,
                                 fontWeight: FontWeight.bold,

@@ -64,32 +64,49 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       ),
       body: Center(
         child: _initialized
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ? Stack(
+                alignment: Alignment.bottomCenter,
                 children: [
                   AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
                     child: VideoPlayer(_controller),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.black54,
+                      child: Text(
+                        '${_controller.value.size.width.toInt()} x ${_controller.value.size.height.toInt()}',
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
-                        onPressed: () => _seekRelative(const Duration(seconds: -10)),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                            onPressed: () => _seekRelative(const Duration(seconds: -10)),
+                          ),
+                          IconButton(
+                            icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: Colors.white, size: 48),
+                            onPressed: _togglePlay,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                            onPressed: () => _seekRelative(const Duration(seconds: 10)),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: Colors.white, size: 48),
-                        onPressed: _togglePlay,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
-                        onPressed: () => _seekRelative(const Duration(seconds: 10)),
-                      ),
+                      VideoProgressIndicator(_controller, allowScrubbing: true, colors: VideoProgressColors(playedColor: Colors.purpleAccent)),
                     ],
                   ),
-                  VideoProgressIndicator(_controller, allowScrubbing: true, colors: VideoProgressColors(playedColor: Colors.purpleAccent)),
                 ],
               )
             : const CircularProgressIndicator(),

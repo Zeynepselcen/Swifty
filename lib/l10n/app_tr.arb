@@ -23,6 +23,7 @@
   "size": "boyut",
   "date": "tarih",
   "name": "isim",
+  "photoCount": "{count} fotoğraf",
 
   "largestSize": "en büyük boyut",
   "refresh": "Yenile",
@@ -134,5 +135,18 @@
   "noPhotosFound": "Bu klasörde fotoğraf bulunamadı",
   "permissionRequired": "İzin Gerekli",
   "permissionRequiredDescription": "Galerinize erişim için izin gereklidir. Lütfen cihaz ayarlarınızda etkinleştirin.",
-  "noAlbumsFoundDescription": "Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı."
+  "noAlbumsFoundDescription": "Galeriye erişim izni verildi ancak hiç fotoğraf veya video bulunamadı.",
+  "onboardingTitleDetail": "Detaylı İnceleme",
+  "onboardingDescDetail": "Fotoğraflara tıklayarak yakınlaştır ve detayları incele. Zoom ikonu ile kolay erişim!",
+  "aboutTitle": "Uygulama Hakkında",
+  "aboutDescription": "Swifty Galeri Temizliği ile fotoğraflarınızı kolayca yönetin!",
+  "settings": "Ayarlar",
+  "language": "Dil",
+  "theme": "Tema",
+  "themeDescription": "Görünümü değiştir",
+  "aboutTakeTour": "Uygulama özelliklerini öğrenmek için turu başlatın",
+  "aboutTakeTourButton": "Turu Başlat",
+  "videoGallery": "Video Galerisi",
+  "photoGallery": "Fotoğraf Galerisi",
+  "swipeToDelete": "Silmek için kaydır"
 } 

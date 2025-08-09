@@ -450,7 +450,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Galeri yenilendi'),
-            backgroundColor: Colors.blue, // Changed from green to blue
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -678,10 +679,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => GalleryCleanerScreen(
-              isVideoMode: _isVideoMode,
-              albumName: album.name,
               albumId: album.id,
+              albumName: album.name,
               photos: photoItems,
+              isVideoMode: _isVideoMode,
               onPhotosDeleted: (deletedCount) {
                 // Albüm listesini güncelle
                 _refreshAlbumList();
@@ -785,7 +786,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           hash: '',
           type: _isVideoMode ? MediaType.video : MediaType.image,
           path: path,
-          name: asset.title ?? 'Unknown',
         );
       }
     } catch (e) {
@@ -832,14 +832,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       for (final asset in assets) {
         final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
         if (thumb != null) {
-          allPhotos.add(PhotoItem(
-            id: asset.id,
-            thumb: thumb,
-            date: asset.createDateTime,
-            hash: '',
-            type: MediaType.image,
-            name: asset.title ?? 'Unknown',
-          ));
+          allPhotos.add(PhotoItem(id: asset.id, thumb: thumb, date: asset.createDateTime, hash: '', type: MediaType.image));
         }
       }
     }
@@ -850,14 +843,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => GalleryCleanerScreen(
-          isVideoMode: false,
-          albumName: 'Random 15 Folders',
           albumId: null,
+          albumName: 'Random 15 Folders',
           photos: allPhotos,
-          onPhotosDeleted: (deletedCount) {
-            // Albüm listesini güncelle
-            _refreshAlbumList();
-          },
         ),
       ),
     );
@@ -1010,29 +998,57 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Geri butonu - sol üst köşe
+                // Üst bar - Geri butonu ve ayarlar
                 Padding(
-                  padding: const EdgeInsets.only(top: 16, left: 16, bottom: 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
+                  padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Geri butonu
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 16,
+                      // Ayarlar butonu
+                      GestureDetector(
+                        onTap: () {
+                          _showSettingsDialog(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.settings,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
                 // Analiz tamamlandı mesajı - DEVRE DIŞI
@@ -1466,8 +1482,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           }
           
           if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            // Fotoğrafları aylara göre grupla
-            final groupedPhotos = GalleryService.groupPhotosByMonth(snapshot.data!);
+            // Fotoğraf veya videoları aylara göre grupla
+            final groupedPhotos = _isVideoMode
+                ? GalleryService.groupVideosByMonth(snapshot.data!)
+                : GalleryService.groupPhotosByMonth(snapshot.data!);
             _photosByMonth = groupedPhotos;
             
             return ListView.builder(
@@ -1494,7 +1512,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                       ),
                     ),
                     subtitle: Text(
-                      '${photos.length} fotoğraf',
+                      AppLocalizations.of(context)!.photoCount(photos.length),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 15,
@@ -1511,14 +1529,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                         context,
                         MaterialPageRoute(
                           builder: (context) => GalleryCleanerScreen(
-                            isVideoMode: false,
-                            albumName: monthKey,
                             albumId: monthKey,
                             photos: photos,
-                            onPhotosDeleted: (deletedCount) {
-                              // Albüm listesini güncelle
-                              _refreshAlbumList();
-                            },
                           ),
                         ),
                       );
@@ -1564,7 +1576,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               ),
             ),
             subtitle: Text(
-              '${photos.length} fotoğraf',
+              AppLocalizations.of(context)!.photoCount(photos.length),
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 15,
@@ -1581,14 +1593,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 context,
                 MaterialPageRoute(
                   builder: (context) => GalleryCleanerScreen(
-                    isVideoMode: false,
-                    albumName: monthKey,
                     albumId: monthKey,
                     photos: photos,
-                    onPhotosDeleted: (deletedCount) {
-                      // Albüm listesini güncelle
-                      _refreshAlbumList();
-                    },
                   ),
                 ),
               );
@@ -1874,19 +1880,448 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         context,
         MaterialPageRoute(
           builder: (context) => GalleryCleanerScreen(
-            isVideoMode: false,
-            albumName: album.album.name,
             albumId: album.album.id,
-            onPhotosDeleted: (deletedCount) {
-              // Albüm listesini güncelle
-              _refreshAlbumList();
-            },
+            albumName: album.album.name,
           ),
         ),
       );
     } finally {
       _isAlbumOpening = false;
     }
+  }
+  }
+
+  // Settings Dialog
+  void _showSettingsDialog(BuildContext context) async {
+    final appLoc = AppLocalizations.of(context)!;
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF121212) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.settings,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        appLoc.settings,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Settings options
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildModernSettingsOption(context, 'language', '🌐', appLoc.language, ''),
+                      const SizedBox(height: 8),
+                      _buildModernSettingsOption(context, 'theme', '🎨', appLoc.theme, ''),
+                      const SizedBox(height: 8),
+                      _buildModernSettingsOption(context, 'about', 'ℹ️', appLoc.aboutTitle, ''),
+                    ],
+                  ),
+                ),
+                // Cancel button
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.2) : Colors.grey.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      appLoc.cancel,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    
+    if (selected != null) {
+      switch (selected) {
+        case 'language':
+          _showLanguageDialog(context);
+          break;
+        case 'theme':
+          // Theme değişikliği için callback kullan
+          // Burada tema değişikliği yapılabilir
+          break;
+        case 'about':
+          _showAboutDialog(context);
+          break;
+      }
+    }
+  }
+
+  Widget _buildModernSettingsOption(BuildContext context, String code, String icon, String label, String subtitle) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, code),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              icon,
+              style: const TextStyle(fontSize: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.6) : Colors.black87.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.5) : Colors.black87.withOpacity(0.5),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final appLoc = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF121212) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.language,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      appLoc.language,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Language options
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildModernLangOption(context, 'tr', 'Türkçe'),
+                    const SizedBox(height: 8),
+                    _buildModernLangOption(context, 'en', 'English'),
+                    const SizedBox(height: 8),
+                    _buildModernLangOption(context, 'es', 'Español'),
+                    const SizedBox(height: 8),
+                    _buildModernLangOption(context, 'ko', '한국어'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernLangOption(BuildContext context, String code, String label) {
+    final isSelected = false; // Basit çözüm - dil seçimi devre dışı
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        // Dil değişikliği devre dışı
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (Theme.of(context).brightness == Brightness.dark ? Colors.blue.withOpacity(0.2) : Colors.blue.withOpacity(0.1))
+              : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? Colors.blue
+                : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2)),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Colors.blue,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    final appLoc = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF121212) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      appLoc.aboutTitle,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      appLoc.aboutDescription,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.8) : Colors.black87.withOpacity(0.8),
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.left,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      appLoc.aboutTakeTour,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.6) : Colors.black87.withOpacity(0.6),
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.left,
+                    ),
+                  ],
+                ),
+              ),
+              // Tour button
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    // OnboardingScreen removed - tour functionality disabled
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    appLoc.aboutTakeTourButton,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              // Close button
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.2) : Colors.grey.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    appLoc.close,
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 } // _GalleryAlbumListScreenState'in kapanışı
 
@@ -1975,10 +2410,4 @@ class FastScrollPhysics extends ClampingScrollPhysics {
   double get maxFlingVelocity => 8000.0;
   @override
   double carriedMomentum(double existingVelocity) => existingVelocity * 0.9;
-} 
-
-// Modern arka plan, grid ve _AlbumCard ile ilgili eklemeleri kaldırıyorum.
-// Eski klasik liste, arama çubuğu, toggle ve dalgalı arka planı geri getiriyorum.
-// ... eski kodu uygula ...
-
-
+}

@@ -73,8 +73,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     title = appLoc.onboardingTitle2;
                     desc = appLoc.onboardingDesc2;
                   } else if (index == 2) {
-                    title = 'Detaylı İnceleme';
-                    desc = 'Fotoğraflara tıklayarak yakınlaştır ve detayları incele. Zoom ikonu ile kolay erişim!';
+                    title = appLoc.onboardingTitleDetail;
+                    desc = appLoc.onboardingDescDetail;
                   } else if (index == 3) {
                     title = appLoc.onboardingTitle3;
                     desc = appLoc.onboardingDesc3;

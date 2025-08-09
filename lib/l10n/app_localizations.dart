@@ -246,6 +246,12 @@ abstract class AppLocalizations {
   /// **'name'**
   String get name;
 
+  /// No description provided for @photoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos'**
+  String photoCount(Object count);
+
   /// No description provided for @largestSize.
   ///
   /// In en, this message translates to:
@@ -869,6 +875,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gallery access permission granted but no photos or videos found.'**
   String get noAlbumsFoundDescription;
+
+  /// No description provided for @onboardingTitleDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed Review'**
+  String get onboardingTitleDetail;
+
+  /// No description provided for @onboardingDescDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on photos to zoom in and examine details. Easy access with the zoom icon!'**
+  String get onboardingDescDetail;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About the App'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your photos easily with Swifty Gallery Cleaner!'**
+  String get aboutDescription;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @themeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Change appearance'**
+  String get themeDescription;
+
+  /// No description provided for @aboutTakeTour.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a tour to learn more about the app features'**
+  String get aboutTakeTour;
+
+  /// No description provided for @aboutTakeTourButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Tour'**
+  String get aboutTakeTourButton;
+
+  /// No description provided for @videoGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Video Gallery'**
+  String get videoGallery;
+
+  /// No description provided for @photoGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo Gallery'**
+  String get photoGallery;
+
+  /// No description provided for @swipeToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to delete'**
+  String get swipeToDelete;
 }
 
 class _AppLocalizationsDelegate

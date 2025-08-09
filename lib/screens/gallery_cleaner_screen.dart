@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../services/gallery_service.dart';
+import '../services/recently_deleted_manager.dart';
 import '../models/photo_item.dart';
 import '../widgets/debounced_button.dart';
 import 'dart:io';
@@ -11,7 +12,7 @@ import 'package:flutter/foundation.dart'; // compute için
 import 'dart:io' show Directory;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'dart:convert';
 import 'dart:math'; // Random için eklendi
 
@@ -158,14 +159,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     List<PhotoItem> loadedPhotos;
     if (widget.albumId != null) {
       loadedPhotos = await GalleryService.loadPhotosFromAlbum(widget.albumId!);
-    } else {
+      } else {
       loadedPhotos = await GalleryService.loadPhotos();
     }
     loadedPhotos.shuffle(Random());
-    setState(() {
+        setState(() {
       photos = loadedPhotos;
-      isLoading = false;
-    });
+          isLoading = false;
+        });
     // 3. Eğer galeri boşsa özel mesaj göster
     if (loadedPhotos.isEmpty) {
       _showEmptyGalleryDialog();
@@ -224,6 +225,57 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     );
   }
 
+  // Fotoğraf dosya boyutunu al
+  Future<int> _getPhotoFileSize(PhotoItem photo) async {
+    try {
+      if (photo.path != null && photo.path!.isNotEmpty) {
+        final file = File(photo.path!);
+        if (await file.exists()) {
+          return await file.length();
+        }
+      }
+    } catch (e) {
+      print('Dosya boyutu alınamadı: $e');
+    }
+    return 0;
+  }
+
+  // Dosya boyutunu kısa formatlı string'e çevir (telefon ekranında sığsın)
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return '${bytes}B';  // Boşluk kaldırıldı
+    } else if (bytes < 1024 * 1024) {
+      double kb = bytes / 1024;
+      return '${kb.toStringAsFixed(0)}K';  // KB yerine K, ondalık kaldırıldı
+    } else if (bytes < 1024 * 1024 * 1024) {
+      double mb = bytes / (1024 * 1024);
+      return '${mb.toStringAsFixed(1)}M';  // MB yerine M
+    } else {
+      double gb = bytes / (1024 * 1024 * 1024);
+      return '${gb.toStringAsFixed(1)}G';  // GB yerine G
+    }
+  }
+
+  // Toplam silinen dosya boyutunu hesapla (bu klasör için)
+  int _getTotalDeletedSize() {
+    // Bu klasördeki silinen fotoğrafların toplam boyutunu hesapla
+    int totalSize = 0;
+    for (final photo in deletedPhotos) {
+      // Her fotoğrafın boyutunu al (asenkron olmadığı için yaklaşık hesaplama)
+      if (photo.path != null && photo.path!.isNotEmpty) {
+        try {
+          final file = File(photo.path!);
+          if (file.existsSync()) {
+            totalSize += file.lengthSync();
+          }
+        } catch (e) {
+          // Hata durumunda geç
+        }
+      }
+    }
+    return totalSize;
+  }
+
   // Geliştirilmiş _onSwipe fonksiyonu
   void _onSwipe(Direction dir, int index) async {
     if (dir == Direction.left) {
@@ -231,6 +283,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       toDelete.add(photos[index].id);
       // Silinen fotoğrafı listeye ekle
       deletedPhotos.add(photos[index]);
+      
+      // RecentlyDeletedManager'a da ekle
+      final fileSize = await _getPhotoFileSize(photos[index]);
+      RecentlyDeletedManager().addDeletedPhoto(photos[index], index, fileSize);
+      
       print('DEBUG: Fotoğraf silinecekler listesine eklendi: ${photos[index].id}');
     } else if (dir == Direction.right) {
       // Sağa kaydırma - beğenilen (silinmeyecek)
@@ -448,13 +505,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       builder: (context) => AlertDialog(
         title: const Text('Son Silinenler'),
         content: const Text('Silinen dosyaları geri almak istiyor musunuz?'),
-        actions: [
+            actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
                           child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
-            onPressed: () {
+                onPressed: () {
               Navigator.pop(context);
               _restoreDeletedFiles();
             },
@@ -582,7 +639,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
           alignment: Alignment.center,
           children: [
             Center(
-              child: Container(
+                child: Container(
                 width: maxCardWidth - 40,
                 height: maxCardHeight - 40,
                 decoration: BoxDecoration(
@@ -590,14 +647,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
                       SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                color: Colors.white,
                           strokeWidth: 2,
                         ),
                       ),
@@ -605,9 +662,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       Text(
                         'Video yükleniyor...',
                         style: TextStyle(color: Colors.white, fontSize: 10),
-                      ),
-                    ],
-                  ),
+            ),
+          ],
+        ),
                 ),
               ),
             ),
@@ -617,9 +674,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       } else {
         return Stack(
           alignment: Alignment.center,
-          children: [
+                                      children: [
             Center(
-              child: Container(
+                                          child: Container(
                 width: maxCardWidth - 40,
                 height: maxCardHeight - 40,
                 child: ClipRRect(
@@ -648,10 +705,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                             IconButton(
                               icon: Icon(controller.value.isPlaying ? Icons.pause_circle : Icons.play_circle, color: Colors.white, size: 48),
                               onPressed: () {
-                                setState(() {
+                                                setState(() {
                                   controller.value.isPlaying ? controller.pause() : controller.play();
-                                });
-                              },
+                                                });
+                                              },
                             ),
                             IconButton(
                               icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
@@ -660,9 +717,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                 final newPosition = controller.value.position + const Duration(seconds: 10);
                                 controller.seekTo(newPosition < max ? newPosition : max);
                               },
-                            ),
-                          ],
-                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                         VideoProgressIndicator(
                           controller,
                           allowScrubbing: true,
@@ -673,12 +730,12 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-              ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
             ),
-          ],
+                                                          ],
         );
       }
     } else {
@@ -693,7 +750,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                   fit: BoxFit.contain, // Tam boyut göster, kırpma yapma
                   width: maxCardWidth - 40,
                   height: maxCardHeight - 40,
-                  errorBuilder: (context, error, stackTrace) {
+                errorBuilder: (context, error, stackTrace) {
                     // Eğer dosya yüklenemezse thumbnail kullan
                     return Image.memory(
                       item.thumb,
@@ -745,25 +802,33 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       onWillPop: _onWillPop,
       child: Scaffold(
         // AppBar kaldırıldı, başlık ve geri butonu Stack ile eklenecek
-        backgroundColor: const Color(0xFF0A183D),
+                backgroundColor: Colors.white,
         body: Stack(
           children: [
-            Theme.of(context).brightness == Brightness.dark
-                ? Container(
+            // Üst kısım pembe gradient, alt kısım beyaz
+            Column(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF0A183D),
-                          Color(0xFF1B2A4D),
-                          Color(0xFF233A5E),
-                          Color(0xFFFFFFFF),
+                          Color(0xFFE91E63), // Pembe
+                          Color(0xFF9C27B0), // Mor
                         ],
                       ),
                     ),
-                  )
-                : const _WavyBackground(),
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Container(color: Colors.white),
+                ),
+              ],
+            ),
             SafeArea(
               child: Stack(
                 children: [
@@ -791,103 +856,182 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                   color: Colors.black.withOpacity(0.2),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
+              ),
+            ],
+          ),
                             child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 24),
+        ),
+                  ),
+              ),
+            ),
+          ),
+                  // Çık ve Sil butonu (sadece seçili fotoğraf varsa göster)
+
+            // Geri Al ve Sil butonları (pembe alanın içinde, sadece fotoğraf gösterimi sırasında)
+            if (deletedPhotos.isNotEmpty && currentIndex < photos.length)
+              Positioned(
+                top: 120,
+                left: 20,
+                right: 20,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Geri Al butonu
+                    GestureDetector(
+                      onTap: () {
+                        if (deletedPhotos.isNotEmpty) {
+                          final lastDeleted = deletedPhotos.removeLast();
+                          RecentlyDeletedManager().restoreLastDeletedPhoto();
+                          setState(() {
+                            photos.insert(currentIndex.clamp(0, photos.length), lastDeleted);
+                            toDelete.remove(lastDeleted.id);
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Geri Al',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  // Çık ve Sil butonu (sadece seçili fotoğraf varsa göster)
-                  if (toDelete.isNotEmpty)
-                    Positioned(
-                      top: 12,
-                      right: 12,
+                    const SizedBox(width: 16),
+                    // Sil butonu
+                    GestureDetector(
+                      onTap: () async {
+                        // Kalıcı silme onayı
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Kalıcı Silme Onayı'),
+                            content: Text('${deletedPhotos.length} fotoğraf/video kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('İptal'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Sil', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          final success = await GalleryService.moveToRecentlyDeleted(toDelete);
+                          if (success) {
+                            final deletedCount = deletedPhotos.length;
+                            RecentlyDeletedManager().clear();
+                            setState(() {
+                              deletedPhotos.clear();
+                              toDelete.clear();
+                            });
+                            widget.onPhotosDeleted?.call(deletedCount);
+                            Navigator.of(context).pop(); // Ana sayfaya dön
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Sil (${deletedPhotos.length})',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // Üst butonlar (sadece fotoğraf gösterimi sırasında)
+            if (currentIndex < photos.length)
+              Positioned(
+                top: 80,
+                left: 20,
+                right: 20,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Sol buton - Kalan fotoğraf sayısı
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Geri alma butonu
-                          if (deletedPhotos.isNotEmpty)
-                            DebouncedButton(
-                              onPressed: () async {
-                                _showUndoDialog();
-                              },
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(24),
-                                  onTap: null, // DebouncedButton üstte olduğu için null
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.9),
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: const Icon(Icons.undo, color: Colors.white, size: 20),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(width: 8),
-                          // Silme butonu
-                          DebouncedButton(
-                            onPressed: () async {
-                              await _deleteBatch();
-                              Navigator.of(context).pop();
-                            },
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: null, // DebouncedButton üstte olduğu için null
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.9),
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.delete_forever, color: Colors.white, size: 20),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${toDelete.length}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                          const Icon(Icons.photo, color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${photos.length - currentIndex} KALAN',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  Positioned(
+                    // Sağ buton - Kazanılan alan
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        '${_formatBytes(_getTotalDeletedSize())} KAZANILAN',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          Positioned(
                     top: 18,
                     left: 0,
                     right: 0,
                     child: Center(
                       child: Text(
                         widget.albumName != null ? _localizedAlbumName(widget.albumName!, appLoc) : '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                    style: const TextStyle(
+                      color: Colors.white,
+                          fontSize: 24,
+                      fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                           shadows: [Shadow(color: Color(0xFF0A183D), blurRadius: 8)],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
                     ),
-                  ),
-                ],
+                        textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
               ),
             ),
             SafeArea(
@@ -899,39 +1043,95 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                       child: (isLoading)
                           ? const CircularProgressIndicator(color: Colors.white)
                           : (currentIndex >= photos.length)
-                              ? Text(
-                                  widget.isVideoMode
-                                    ? appLoc.allVideosReviewed
-                                    : appLoc.allPhotosReviewed,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                              ? Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  color: Colors.white,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 80,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      const Text(
+                                        'Bitti!',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        widget.isVideoMode
+                                          ? 'Tüm videolar incelendi'
+                                          : 'Tüm fotoğraflar incelendi',
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      if (deletedPhotos.isNotEmpty) ...[
+                                        const SizedBox(height: 30),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            // Kalıcı silme onayı
+                                            final confirmed = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text('Kalıcı Silme Onayı'),
+                                                content: Text('${deletedPhotos.length} fotoğraf/video kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(false),
+                                                    child: const Text('İptal'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(true),
+                                                    child: const Text('Sil', style: TextStyle(color: Colors.red)),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+
+                                            if (confirmed == true) {
+                                              final success = await GalleryService.moveToRecentlyDeleted(toDelete);
+                                              if (success) {
+                                                final deletedCount = deletedPhotos.length;
+                                                RecentlyDeletedManager().clear();
+                                                setState(() {
+                                                  deletedPhotos.clear();
+                                                  toDelete.clear();
+                                                });
+                                                widget.onPhotosDeleted?.call(deletedCount);
+                                                Navigator.of(context).pop(); // Ana sayfaya dön
+                                              }
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                          ),
+                                          child: Text('Kalıcı Sil (${deletedPhotos.length})'),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 )
                               : LayoutBuilder(
                                   builder: (context, constraints) {
-                                    final maxCardWidth = (constraints.maxWidth * 0.8).clamp(180.0, 420.0);
-                                    final maxCardHeight = (constraints.maxHeight * 0.6).clamp(220.0, 600.0);
-                                    return Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                    final maxCardWidth = (constraints.maxWidth * 0.9).clamp(200.0, 450.0);
+                                    final maxCardHeight = (constraints.maxHeight * 0.75).clamp(300.0, 650.0);
+                                    return Column(
                                       children: [
-                                        // Sol ikon
-                                        Flexible(
-                                          flex: 1,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: const [
-                                              CircleAvatar(
-                                                backgroundColor: Color(0xFFE57373),
-                                                radius: 22,
-                                                child: Icon(Icons.delete, color: Colors.white, size: 24),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
+                                        const SizedBox(height: 40),
+                                        Expanded(
+                                          child: Center(
+                                            child:
                                         // Kart
                                         ConstrainedBox(
                                           constraints: BoxConstraints(
@@ -940,8 +1140,22 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                             maxHeight: maxCardHeight,
                                             minHeight: 120,
                                           ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(32),
+                                          child: Container(
+                                            margin: const EdgeInsets.all(16),
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(24),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(20),
                                             child: CardSwiper(
                                               key: ValueKey(currentIndex),
                                               controller: _swiperController,
@@ -979,10 +1193,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                       alignment: Alignment.center,
                                                       children: [
                                                         Center(
-                                                          child: Container(
+                                                                  child: Container(
                                                             width: maxCardWidth - 20,
                                                             height: maxCardHeight - 20,
-                                                            decoration: BoxDecoration(
+                                                                    decoration: BoxDecoration(
                                                               color: Colors.black12,
                                                               borderRadius: BorderRadius.circular(12),
                                                             ),
@@ -1012,8 +1226,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                           child: AspectRatio(
                                                             aspectRatio: controller.value.aspectRatio,
                                                             child: Column(
-                                                              mainAxisAlignment: MainAxisAlignment.center,
-                                                              children: [
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                                                                 Expanded(child: VideoPlayer(controller)),
                                                                 Padding(
                                                                   padding: const EdgeInsets.only(top: 8.0, left: 8, right: 8, bottom: 8),
@@ -1022,13 +1236,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                                     allowScrubbing: true,
                                                                     colors: VideoProgressColors(playedColor: Color(0xFF4DB6AC)),
                                                                   ),
-                                                                ),
-                                                              ],
-                                                            ),
+                      ),
+                    ],
+                  ),
                                                           ),
                                                         ),
                                                         if (!controller.value.isPlaying)
-                                                          GestureDetector(
+                                                    GestureDetector(
                                                             onTap: () => setState(() { controller.value.isPlaying ? controller.pause() : controller.play(); }),
                                                             child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 64),
                                                           ),
@@ -1048,20 +1262,39 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                           width: maxCardWidth - 20,
                                                           height: maxCardHeight - 20,
                                                         ),
-                                                        // Zoom ikonu
+                                                                                                                // Dosya boyutu yazısı
                                                         Positioned(
                                                           top: 8,
                                                           right: 8,
                                                           child: Container(
-                                                            padding: const EdgeInsets.all(6),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                             decoration: BoxDecoration(
-                                                              color: Colors.black.withOpacity(0.6),
-                                                              borderRadius: BorderRadius.circular(20),
+                                                              color: Colors.black.withOpacity(0.7),
+                                                              borderRadius: BorderRadius.circular(12),
                                                             ),
-                                                            child: const Icon(
-                                                              Icons.zoom_in,
-                                                              color: Colors.white,
-                                                              size: 20,
+                                                            child: FutureBuilder<int>(
+                                                              future: _getPhotoFileSize(photo),
+                                                              builder: (context, snapshot) {
+                                                                if (snapshot.hasData) {
+                                                                  return Text(
+                                                                    _formatBytes(snapshot.data!),
+                                                                    style: const TextStyle(
+                                                                      color: Colors.white,
+                                                                      fontSize: 12,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  );
+                                                                } else {
+                                                                  return const Text(
+                                                                    "0 B",
+                                                                    style: TextStyle(
+                                                                      color: Colors.white,
+                                                                      fontSize: 12,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              },
                                                             ),
                                                           ),
                                                         ),
@@ -1072,43 +1305,104 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                               },
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        // Sağ ikon
-                                        Flexible(
-                                          flex: 1,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: const [
-                                              CircleAvatar(
-                                                backgroundColor: Color(0xFF4DB6AC),
-                                                radius: 22,
-                                                child: Icon(Icons.favorite, color: Colors.white, size: 24),
-                                              ),
-                                            ],
+                                                                                      ),
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(height: 20),
+                                        // Alt butonlar
+                                        if (!isLoading && currentIndex < photos.length)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 30),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                // Silme butonu (kırmızı)
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    if (currentIndex < photos.length) {
+                                                      _onSwipe(Direction.left, currentIndex);
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    width: 56,
+                                                    height: 56,
+                                                    decoration: const BoxDecoration(
+                                                      color: Color(0xFFE53E3E),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.delete,
+                                                      color: Colors.white,
+                                                      size: 28,
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Atla butonu (mor/pembe)
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    if (currentIndex < photos.length) {
+                                                      setState(() {
+                                                        currentIndex++;
+                                                      });
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      gradient: const LinearGradient(
+                                                        colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
+                                                        begin: Alignment.centerLeft,
+                                                        end: Alignment.centerRight,
+                                                      ),
+                                                      borderRadius: BorderRadius.circular(30),
+                                                    ),
+                                                    child: const Text(
+                                                      'Atla →',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 22,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Kalp butonu (yeşil)
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    if (currentIndex < photos.length) {
+                                                      _onSwipe(Direction.right, currentIndex);
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    width: 56,
+                                                    height: 56,
+                                                    decoration: const BoxDecoration(
+                                                      color: Color(0xFF38A169),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.favorite,
+                                                      color: Colors.white,
+                                                      size: 28,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        const SizedBox(height: 20),
                                       ],
                                     );
                                   },
                                 ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Kalan fotoğraf sayısı
-                  if (!isLoading && currentIndex < photos.length)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: Text(
-                        appLoc.remainingPhotos(photos.length - currentIndex),
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ],
+                  
+                                                  ],
+                                                ),
+                                              ),
+        ],
         ),
       ),
     );
@@ -1131,7 +1425,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     final shouldLeave = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+        builder: (context) => AlertDialog(
         title: const Text('Çıkış Onayı'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1143,13 +1437,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             ) ?? 'Henüz $remaining ${widget.isVideoMode ? 'video' : 'fotoğraf'} gözden geçirmediniz.'),
             if (selectedCount > 0) ...[
               const SizedBox(height: 16),
-              Container(
+            Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
+              decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
+              ),
                 child: Row(
                   children: [
                     const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
@@ -1186,9 +1480,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop('exit'),
             child: const Text('Silmeden Çık'),
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
     );
     
     if (shouldLeave == 'delete') {
@@ -1216,12 +1510,12 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       builder: (context) => AlertDialog(
         title: Text(appLoc.undoTitle),
         content: Text(appLoc.undoMessage(deletedPhotos.length)),
-        actions: [
-          TextButton(
+          actions: [
+            TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(appLoc.undoCancel),
-          ),
-          ElevatedButton(
+            ),
+            ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _undoLastDeletion();
@@ -1230,10 +1524,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               backgroundColor: Colors.blue,
             ),
             child: Text(appLoc.undoConfirm, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+            ),
+          ],
+        ),
+      );
   }
 
   // Son silme işlemini geri al
@@ -1251,8 +1545,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       if (!fileExists) {
         // Dosya gerçekten silinmiş, geri alma mümkün değil
         final appLoc = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
             content: Text(appLoc.filePermanentlyDeleted),
             backgroundColor: Colors.orange,
           ),
@@ -1353,9 +1647,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               Navigator.of(context).pop();
             },
             child: const Text('Ayarlara Git'),
-          ),
-        ],
-      ),
+                              ),
+                            ],
+                          ),
     );
   }
   // --- Tüm Dosya Yönetimi İzni için eklenen kod sonu ---
@@ -1377,9 +1671,9 @@ class _WavyBackground extends StatelessWidget {
             Color(0xFFF15F79),
             Color(0xFF6D327A),
             Color(0xFF1E3C72),
-          ],
-        ),
-      ),
+                            ],
+                          ),
+                        ),
       child: CustomPaint(
         painter: _WavesPainter(),
         size: Size.infinite,

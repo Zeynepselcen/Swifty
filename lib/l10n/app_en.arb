@@ -23,6 +23,7 @@
   "size": "size",
   "date": "date",
   "name": "name",
+  "photoCount": "{count} photos",
 
   "largestSize": "largest size",
   "refresh": "Refresh",
@@ -134,5 +135,18 @@
   "noPhotosFound": "No photos found in this folder",
   "permissionRequired": "Permission Required",
   "permissionRequiredDescription": "Permission is required to access your gallery. Please enable it in your device settings.",
-  "noAlbumsFoundDescription": "Gallery access permission granted but no photos or videos found."
+  "noAlbumsFoundDescription": "Gallery access permission granted but no photos or videos found.",
+  "onboardingTitleDetail": "Detailed Review",
+  "onboardingDescDetail": "Tap on photos to zoom in and examine details. Easy access with the zoom icon!",
+  "aboutTitle": "About the App",
+  "aboutDescription": "Manage your photos easily with Swifty Gallery Cleaner!",
+  "settings": "Settings",
+  "language": "Language",
+  "theme": "Theme",
+  "themeDescription": "Change appearance",
+  "aboutTakeTour": "Take a tour to learn more about the app features",
+  "aboutTakeTourButton": "Start Tour",
+  "videoGallery": "Video Gallery",
+  "photoGallery": "Photo Gallery",
+  "swipeToDelete": "Swipe to delete"
 } 

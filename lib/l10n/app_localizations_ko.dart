@@ -83,6 +83,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get name => '이름';
 
   @override
+  String photoCount(Object count) {
+    return '$count장 사진';
+  }
+
+  @override
   String get largestSize => '가장 큰 크기';
 
   @override
@@ -416,4 +421,44 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get noAlbumsFoundDescription =>
       '갤러리 접근 권한이 허용되었지만 사진이나 비디오를 찾을 수 없습니다.';
+
+  @override
+  String get onboardingTitleDetail => '상세 검토';
+
+  @override
+  String get onboardingDescDetail =>
+      '사진을 눌러 확대하고 세부 정보를 확인하세요. 확대 아이콘으로 쉽게 접근할 수 있습니다!';
+
+  @override
+  String get aboutTitle => '앱 정보';
+
+  @override
+  String get aboutDescription => 'Swifty 갤러리 클리너로 사진을 쉽게 관리하세요!';
+
+  @override
+  String get settings => '설정';
+
+  @override
+  String get language => '언어';
+
+  @override
+  String get theme => '테마';
+
+  @override
+  String get themeDescription => '외관 변경';
+
+  @override
+  String get aboutTakeTour => '앱 기능에 대해 더 자세히 알아보려면 투어를 시작하세요';
+
+  @override
+  String get aboutTakeTourButton => '투어 시작';
+
+  @override
+  String get videoGallery => 'Video Gallery';
+
+  @override
+  String get photoGallery => 'Photo Gallery';
+
+  @override
+  String get swipeToDelete => 'Swipe to delete';
 }
