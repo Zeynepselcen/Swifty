@@ -139,5 +139,10 @@
   "theme": "Tema",
   "themeDescription": "Cambiar apariencia",
   "aboutTakeTour": "Toma un tour para aprender más sobre las características de la aplicación",
-  "aboutTakeTourButton": "Iniciar Tour"
+  "aboutTakeTourButton": "Iniciar Tour",
+  "videoGallery": "Galería de Video",
+  "photoGallery": "Galería de Fotos",
+  "swipeToDelete": "Deslizar para eliminar",
+  "photoCount": "{count} fotos",
+  "deletedAt": "Eliminado en"
 } 

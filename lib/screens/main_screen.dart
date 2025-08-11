@@ -5,8 +5,10 @@ import '../widgets/debounced_button.dart';
 // import '../l10n/app_localizations.dart'; // kaldırıldı
 
 import 'dart:io';
+import 'dart:convert';
 import '../l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 
 class MainScreen extends StatefulWidget {
   final void Function(Locale)? onLocaleChanged;
@@ -19,17 +21,80 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Locale _currentLocale = const Locale('tr');
+  int _deletedFilesCount = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentLocale = widget.currentLocale ?? const Locale('tr');
     
     // Eğer widget.currentLocale null ise, varsayılan dil kullan
     if (widget.currentLocale == null) {
       _currentLocale = const Locale('tr');
+    }
+    
+    _loadDeletedFilesCount();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Uygulama ön plana geldiğinde sayacı yenile
+      _loadDeletedFilesCount();
+    }
+  }
+
+  Future<void> _loadDeletedFilesCount() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final deletedFilesPath = '${appDir.path}/deleted_files.json';
+      final deletedFilesFile = File(deletedFilesPath);
+
+      if (await deletedFilesFile.exists()) {
+        final content = await deletedFilesFile.readAsString();
+        if (content.isNotEmpty) {
+          final files = List<Map<String, dynamic>>.from(
+            json.decode(content) as List
+          );
+
+          // Süresi dolmamış dosyaları filtrele
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final validFiles = files.where((file) {
+            final expiresAt = file['expiresAt'] as int;
+            return now < expiresAt;
+          }).toList();
+
+          setState(() {
+            _deletedFilesCount = validFiles.length;
+          });
+        } else {
+          // JSON dosyası boşsa sayacı sıfırla
+          setState(() {
+            _deletedFilesCount = 0;
+          });
+        }
+      } else {
+        // JSON dosyası yoksa sayacı sıfırla
+        setState(() {
+          _deletedFilesCount = 0;
+        });
+      }
+    } catch (e) {
+      print('Silinen dosya sayısı yüklenirken hata: $e');
+      // Hata durumunda da sayacı sıfırla
+      setState(() {
+        _deletedFilesCount = 0;
+      });
     }
   }
 
@@ -701,10 +766,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -829,9 +891,19 @@ class _MainScreenState extends State<MainScreen> {
                     height: 60,
                     child: DebouncedButton(
                       onPressed: () async {
-                        Navigator.of(context).push(
+                        final result = await Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const RecentlyDeletedScreen()),
                         );
+                        // Geri dönünce her zaman sayacı yenile
+                        _loadDeletedFilesCount();
+                        
+                        // Eğer galeri yenilendi ise, ana ekranı da yenile
+                        if (result == true) {
+                          print('DEBUG: Galeri yenilendi, ana ekran yenileniyor...');
+                          setState(() {
+                            // UI'yi yenile
+                          });
+                        }
                       },
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -843,7 +915,12 @@ class _MainScreenState extends State<MainScreen> {
                           shadowColor: Colors.black.withOpacity(0.3),
                         ),
                         icon: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
-                        label: Text(appLoc.recentlyDeleted, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        label: Text(
+                          _deletedFilesCount > 0 
+                            ? '${appLoc.recentlyDeleted} ($_deletedFilesCount)' 
+                            : appLoc.recentlyDeleted, 
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                        ),
                         onPressed: null, // DebouncedButton üstte olduğu için null
                       ),
                     ),

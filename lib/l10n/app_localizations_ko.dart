@@ -454,11 +454,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aboutTakeTourButton => '투어 시작';
 
   @override
-  String get videoGallery => 'Video Gallery';
+  String get videoGallery => '비디오 갤러리';
 
   @override
-  String get photoGallery => 'Photo Gallery';
+  String get photoGallery => '사진 갤러리';
 
   @override
-  String get swipeToDelete => 'Swipe to delete';
+  String get swipeToDelete => '스와이프해서 삭제';
 }

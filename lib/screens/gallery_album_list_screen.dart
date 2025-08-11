@@ -8,6 +8,9 @@ import '../services/gallery_service.dart';
 import '../models/photo_item.dart';
 import 'package:intl/intl.dart';
 import '../widgets/debounced_button.dart'; // DebouncedButton import
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 
 import 'package:flutter/foundation.dart';
@@ -62,6 +65,11 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   // Analiz state değişkenleri
   bool _analysisStarted = false;
   bool _analysisCompleted = false;
+  
+  // Fotoğraf yükleme progress state değişkenleri
+  double _photoLoadingProgress = 0.0;
+  String _photoLoadingLabel = '';
+  bool _isPhotoLoading = false;
 
   // Arama ile ilgili - TAMAMEN KALDIRILDI
   // final TextEditingController _searchController = TextEditingController();
@@ -515,6 +523,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final results = await Future.wait(futures);
     albumList.addAll(results.where((album) => album != null).cast<_AlbumWithCount>());
     
+
+    
     setState(() {
       _albums = albumList;
       _lastUpdateTime = DateTime.now();
@@ -661,16 +671,33 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     await _openAlbumDirectly(album.album);
   }
 
+
+
   Future<void> _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
+    
+
+    
+    // Loading state başlat
+    setState(() {
+      _loadingPhotos = true;
+      _isPhotoLoading = true;
+      _photoLoadingProgress = 0.0;
+      _photoLoadingLabel = 'Fotoğraflar yükleniyor...';
+    });
     
     try {
       // Tüm fotoğrafları al (sınırsız)
       final totalCount = await album.assetCountAsync;
       print('DEBUG: Toplam ${totalCount} asset bulundu');
       
-      // Ana thread'de işle (isolate sorunu nedeniyle)
-      final photoItems = await _loadAssetsDirectly(album, totalCount);
+      // Progress callback ile yükleme
+      final photoItems = await _loadAssetsDirectlyWithProgress(album, totalCount, (progress, current, total) {
+        setState(() {
+          _photoLoadingProgress = progress;
+          _photoLoadingLabel = 'Fotoğraflar yükleniyor... $current/$total';
+        });
+      });
       
       print('DEBUG: ${photoItems.length} PhotoItem oluşturuldu');
     
@@ -702,26 +729,39 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(appLoc?.noAlbumsFound ?? 'Klasör açılırken hata oluştu: $e')),
       );
+    } finally {
+      // Loading state bitir
+      setState(() {
+        _loadingPhotos = false;
+        _isPhotoLoading = false;
+        _photoLoadingProgress = 1.0;
+        _photoLoadingLabel = 'Fotoğraflar hazır';
+      });
     }
   }
 
-  // Ultra optimize edilmiş asset yükleme
-  Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
+  // Progress callback ile asset yükleme - ULTRA HIZLI
+  Future<List<PhotoItem>> _loadAssetsDirectlyWithProgress(
+    AssetPathEntity album, 
+    int totalCount, 
+    Function(double progress, int current, int total) onProgress
+  ) async {
     final photoItems = <PhotoItem>[];
     
-    // Daha hızlı yükleme için küçük sayfa boyutu
-    const int pageSize = 10; // 20'den 10'a düşürüldü - daha hızlı açılım
+    // ULTRA HIZLI yükleme için büyük sayfa boyutu
+    const int pageSize = 200; // 100'den 200'e çıkarıldı - ultra hızlı
     int currentPage = 0;
     
-    // Daha hızlı yükleme için sınırlı fotoğraf sayısı
-    const int maxPhotos = 200; // 500'den 200'e düşürüldü - daha hızlı açılım
+    // Dinamik fotoğraf sayısı - albüm büyüklüğüne göre ayarla
+    final maxPhotos = totalCount > 1000 ? 800 : (totalCount > 500 ? 500 : 200);
+    int processedCount = 0;
     
     while (photoItems.length < totalCount && photoItems.length < maxPhotos) {
       final assets = await album.getAssetListPaged(page: currentPage, size: pageSize);
       if (assets.isEmpty) break;
       
-      // Batch işleme - daha küçük gruplar halinde (daha hızlı)
-      final batchSize = 10; // 25'ten 10'a düşürüldü - daha hızlı işlem
+      // ULTRA BÜYÜK batch işleme - daha az batch, ultra hızlı
+      final batchSize = 100; // 50'den 100'e çıkarıldı - ultra hızlı
       final batches = <List<AssetEntity>>[];
       
       for (int i = 0; i < assets.length; i += batchSize) {
@@ -734,7 +774,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         final futures = <Future<PhotoItem?>>[];
         
         for (final asset in batch) {
-          futures.add(_processAssetOptimized(asset));
+          futures.add(_processAssetUltraFast(asset)); // Yeni ultra hızlı fonksiyon
         }
         
         // Batch'i paralel olarak işle
@@ -744,30 +784,49 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         for (final result in results) {
           if (result != null) {
             photoItems.add(result);
+            processedCount++;
+            
+            // Progress güncelle - ultra akıllı güncelleme sistemi
+            // 5000 fotoğraf varsa her 100'de bir güncelle
+            // 1000 fotoğraf varsa her 20'de bir güncelle
+            // 500 fotoğraf varsa her 10'da bir güncelle
+            // 200 fotoğraf varsa her 5'te bir güncelle
+            final updateInterval = (maxPhotos / 50).clamp(1, 100).toInt();
+            if (processedCount % updateInterval == 0 || processedCount == maxPhotos) {
+              final progress = (processedCount / maxPhotos).clamp(0.0, 1.0);
+              onProgress(progress, processedCount, maxPhotos);
+            }
           }
         }
         
-        // Her batch sonrası çok kısa bekleme (daha hızlı yükleme için)
-        await Future.delayed(const Duration(milliseconds: 2));
+        // Bekleme süresini kaldır - daha hızlı
+        // await Future.delayed(const Duration(milliseconds: 2));
       }
       
       currentPage++;
       
-      // Güvenlik kontrolü - daha yüksek limit
-      if (currentPage > 100) break; // 50'den 100'e çıkarıldı
+      // Güvenlik kontrolü - daha düşük limit
+      if (currentPage > 20) break; // 100'den 20'ye düşürüldü
     }
     
     print('DEBUG: Toplam ${photoItems.length} fotoğraf yüklendi');
     return photoItems;
   }
 
-  // Ultra optimize edilmiş asset işleme
-  Future<PhotoItem?> _processAssetOptimized(AssetEntity asset) async {
+  // Ultra optimize edilmiş asset yükleme (geriye uyumluluk için)
+  Future<List<PhotoItem>> _loadAssetsDirectly(AssetPathEntity album, int totalCount) async {
+    return _loadAssetsDirectlyWithProgress(album, totalCount, (progress, current, total) {
+      // Progress callback boş - geriye uyumluluk için
+    });
+  }
+
+  // Ultra hızlı asset işleme - kalite korunarak
+  Future<PhotoItem?> _processAssetUltraFast(AssetEntity asset) async {
     try {
-      // Daha yüksek kalite thumbnail - kalite için
-      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(300, 300));
+      // Kaliteyi koru ama daha hızlı thumbnail alma - boyut artırıldı
+      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
       if (thumb != null) {
-        // Path'i al
+        // Path'i al - daha hızlı
         String path = '';
         try {
           final file = await asset.file;
@@ -775,7 +834,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             path = file.path;
           }
         } catch (e) {
-          print('Path alma hatası: $e');
+          // Path hatası durumunda sessizce devam et
         }
         
         return PhotoItem(
@@ -792,6 +851,11 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       // Hata durumunda sessizce devam et
     }
     return null;
+  }
+
+  // Ultra optimize edilmiş asset işleme (geriye uyumluluk için)
+  Future<PhotoItem?> _processAssetOptimized(AssetEntity asset) async {
+    return _processAssetUltraFast(asset);
   }
 
   // Eski fonksiyon (geriye uyumluluk için)
@@ -947,10 +1011,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFFB24592),
-                Color(0xFFF15F79),
-                Color(0xFF6D327A),
-                Color(0xFF1E3C72),
+                Color(0xFFB24592), // Pembe
+                Color(0xFFF15F79), // Açık pembe
+                Color(0xFF6D327A), // Mor
+                Color(0xFF1E3C72), // Mavi
               ],
             ),
           ),
@@ -977,6 +1041,63 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
+    // Fotoğraf yükleme progress overlay
+    if (_isPhotoLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFB24592), // Pembe
+                Color(0xFFF15F79), // Açık pembe
+                Color(0xFF6D327A), // Mor
+                Color(0xFF1E3C72), // Mavi
+              ],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 200,
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(
+                        value: _photoLoadingProgress,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 4,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _photoLoadingLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '${(_photoLoadingProgress * 100).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1127,13 +1248,14 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 ),
                 // Arama çubuğu - TAMAMEN KALDIRILDI
                 // Etiket chips - TAMAMEN KALDIRILDI
-                // Sıralama kutusu ve yenile butonu
+                // Sıralama kutusu ve görünüm seçenekleri
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   child: Row(
                     children: [
                       // DropdownButton yerine PopupMenuButton ile modern ve özel menü:
                       Flexible(
+                        flex: 3, // Daha fazla alan kaplasın
                         child: PopupMenuButton<AlbumSortType>(
                           onSelected: (AlbumSortType newValue) {
                             setState(() {
@@ -1180,40 +1302,41 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               ),
                             ),
                           ],
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    _sortType == AlbumSortType.size
-                                        ? appLoc.size
-                                        : _sortType == AlbumSortType.date
-                                            ? appLoc.date
-                                            : appLoc.name,
-                                    style: const TextStyle(
-                                      color: Colors.white, 
-                                      fontWeight: FontWeight.w700, 
-                                      fontSize: 12,
-                                      letterSpacing: 0.5,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                                                          child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          _sortType == AlbumSortType.size
+                                              ? appLoc.size
+                                              : _sortType == AlbumSortType.date
+                                                  ? appLoc.date
+                                                  : appLoc.name,
+                                          style: const TextStyle(
+                                            color: Colors.white, 
+                                            fontWeight: FontWeight.w700, 
+                                            fontSize: 14,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_drop_down, color: Colors.white),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const Spacer(), // Sağa itmek için boşluk
+                      const SizedBox(width: 8),
                       // Görünüm seçenekleri
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1304,17 +1427,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white, size: 24),
-                        onPressed: () {
-                          _forceReloadCounter++;
-                          _refreshData();
-                        },
-                        tooltip: appLoc.refresh,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
                       ),
                     ],
                   ),
@@ -1435,13 +1547,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 borderRadius: BorderRadius.circular(16),
               ),
               child: ListTile(
-                leading: _buildAlbumThumbnail(album.album),
+                leading: _isVideoMode ? null : _buildAlbumThumbnail(album.album),
                 title: Text(
                   album.album.name,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 subtitle: Text(
-                  '${album.count} ${appLoc.photos}',
+                  '${album.count} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
                   style: const TextStyle(color: Colors.white70, fontSize: 15),
                 ),
                 onTap: null, // DebouncedButton üstte olduğu için null
@@ -1460,8 +1572,108 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         future: _isVideoMode ? GalleryService.loadVideos() : GalleryService.loadPhotos(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    child: Stack(
+                      children: [
+                        // Arka plan daire
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        // Progress circle
+                        Center(
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 8,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).brightness == Brightness.dark 
+                                  ? const Color(0xFF4DB6AC)
+                                  : const Color(0xFFB24592),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // İkon
+                        Center(
+                          child: Icon(
+                            _isVideoMode ? Icons.video_library : Icons.photo_library,
+                            size: 40,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _isVideoMode ? 'Videolar yükleniyor...' : 'Fotoğraflar yükleniyor...',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lütfen bekleyin, bu işlem biraz zaman alabilir',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  // Pulse animasyonu
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(seconds: 2),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 200,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(2),
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        child: Row(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 200 * value,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(2),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF4DB6AC),
+                                    const Color(0xFFB24592),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    onEnd: () {
+                      // Animasyon bitince tekrar başlat
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
             );
           }
           

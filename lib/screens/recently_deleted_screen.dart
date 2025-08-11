@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 
 class RecentlyDeletedScreen extends StatefulWidget {
@@ -15,11 +16,24 @@ class RecentlyDeletedScreen extends StatefulWidget {
 class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   List<Map<String, dynamic>> deletedFiles = [];
   bool isLoading = true;
+  static const MethodChannel _channel = MethodChannel('gallery_service');
 
   @override
   void initState() {
     super.initState();
     _loadDeletedFiles();
+  }
+
+  // MediaStore'u yenile - yeni dosyaları galeriye ekle
+  Future<void> _refreshMediaStore(String filePath) async {
+    try {
+      await _channel.invokeMethod('refreshMediaStore', {
+        'filePath': filePath,
+      });
+      print('MediaStore yenilendi: $filePath');
+    } catch (e) {
+      print('MediaStore yenileme hatası: $e');
+    }
   }
 
   Future<void> _loadDeletedFiles() async {
@@ -72,36 +86,95 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       final originalPath = fileInfo['originalPath'] as String;
       final trashPath = fileInfo['trashPath'] as String;
       final fileName = fileInfo['fileName'] as String;
+      final originalFolderPath = fileInfo['originalFolderPath'] as String?;
+
+      // Loading göster
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  '${fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName} geri alınıyor...',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 2),
+        ),
+      );
 
       final trashFile = File(trashPath);
       if (await trashFile.exists()) {
-        // DCIM klasörüne geri kopyala (daha güvenli)
-        final dcimDir = Directory('/storage/emulated/0/DCIM');
-        final restoredDir = Directory('${dcimDir.path}/Restored');
+        // Orijinal klasöre geri kopyala
+        String restoredPath;
         
-        // Restored klasörünü oluştur
-        if (!await restoredDir.exists()) {
-          await restoredDir.create(recursive: true);
+        if (originalFolderPath != null && originalFolderPath.isNotEmpty) {
+          // Orijinal klasör yolunu kullan
+          final originalDir = Directory(originalFolderPath);
+          
+          // Orijinal klasör yoksa oluştur
+          if (!await originalDir.exists()) {
+            await originalDir.create(recursive: true);
+          }
+          
+          // Orijinal dosya adını kullan
+          restoredPath = originalPath;
+        } else {
+          // Fallback: DCIM klasörüne kopyala
+          final dcimDir = Directory('/storage/emulated/0/DCIM');
+          final restoredDir = Directory('${dcimDir.path}/Restored');
+          
+          // Restored klasörünü oluştur
+          if (!await restoredDir.exists()) {
+            await restoredDir.create(recursive: true);
+          }
+
+          // Benzersiz dosya adı oluştur
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final nameWithoutExt = path.basenameWithoutExtension(fileName);
+          final ext = path.extension(fileName);
+          final restoredFileName = '${nameWithoutExt}_restored_$timestamp$ext';
+          restoredPath = '${restoredDir.path}/$restoredFileName';
         }
 
-        // Benzersiz dosya adı oluştur
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final nameWithoutExt = path.basenameWithoutExtension(fileName);
-        final ext = path.extension(fileName);
-        final restoredFileName = '${nameWithoutExt}_restored_$timestamp$ext';
-        final restoredPath = '${restoredDir.path}/$restoredFileName';
-
-        // Dosyayı Restored klasörüne kopyala
+        // Dosyayı orijinal konumuna kopyala
         await trashFile.copy(restoredPath);
         await trashFile.delete(); // Trash dosyasını sil
+
+        // MediaStore'u yenile - dosyayı galeriye ekle
+        await _refreshMediaStore(restoredPath);
 
         // JSON dosyasından kaldır
         await _removeFromJson(fileInfo);
 
+        // Başarı mesajı
+        String message;
+        if (originalFolderPath != null && originalFolderPath.isNotEmpty) {
+          final folderName = path.basename(originalFolderPath);
+          final shortFileName = fileName.length > 15 ? fileName.substring(0, 15) + '...' : fileName;
+          message = '$shortFileName geri alındı ($folderName klasörüne)';
+        } else {
+          final shortFileName = fileName.length > 15 ? fileName.substring(0, 15) + '...' : fileName;
+          message = '$shortFileName geri alındı (DCIM/Restored klasörüne)';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$fileName geri alındı (DCIM/Restored klasörüne)'),
-            backgroundColor: Colors.blue, // Changed from green to blue
+            content: Text(
+              message,
+              overflow: TextOverflow.ellipsis,
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
         );
 
@@ -166,13 +239,25 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final hours = ((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).floor();
     
     if (days > 0) {
-      final daysText = appLoc.daysRemaining.toString();
-      return daysText.replaceAll('{days}', '$days').replaceAll('{hours}', '$hours');
+      return appLoc.daysRemaining(days, hours);
     } else if (hours > 0) {
-      final hoursText = appLoc.hoursRemaining.toString();
-      return hoursText.replaceAll('{hours}', '$hours');
+      return appLoc.hoursRemaining(hours);
     } else {
-      return appLoc.expiringSoon.toString();
+      return appLoc.expiringSoon;
+    }
+  }
+
+  Color _getRemainingColor(int expiresAt) {
+    final appLoc = AppLocalizations.of(context)!;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final remaining = expiresAt - now;
+
+    if (remaining < 0) {
+      return Colors.red; // Süresi dolmuş
+    } else if (remaining < (1000 * 60 * 60 * 24)) { // 24 saatten az kalan
+      return Colors.orange;
+    } else {
+      return Colors.green; // 24 saatten fazla kalan
     }
   }
 
@@ -280,9 +365,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                             Text(
                               _getTimeRemaining(expiresAt),
                               style: TextStyle(
-                                color: _getTimeRemaining(expiresAt).contains(AppLocalizations.of(context)!.timeRemaining.toString().split(' ').first)
-                                    ? Colors.green
-                                    : Colors.orange,
+                                color: _getRemainingColor(expiresAt),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

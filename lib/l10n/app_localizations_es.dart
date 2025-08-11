@@ -86,7 +86,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String photoCount(Object count) {
-    return '$count photos';
+    return '$count fotos';
   }
 
   @override
@@ -471,11 +471,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get aboutTakeTourButton => 'Iniciar Tour';
 
   @override
-  String get videoGallery => 'Video Gallery';
+  String get videoGallery => 'Galería de Video';
 
   @override
-  String get photoGallery => 'Photo Gallery';
+  String get photoGallery => 'Galería de Fotos';
 
   @override
-  String get swipeToDelete => 'Swipe to delete';
+  String get swipeToDelete => 'Deslizar para eliminar';
 }

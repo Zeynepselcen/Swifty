@@ -294,16 +294,17 @@ class GalleryService {
         final totalCount = await album.assetCountAsync;
         
         // Büyük albümler için optimize edilmiş batch yükleme
-        final batchSize = 100; // Daha büyük batch (daha hızlı)
+        final batchSize = 200; // Daha da büyük batch (daha hızlı)
         final totalBatches = (totalCount / batchSize).ceil();
         
         for (int page = 0; page < totalBatches; page++) {
           final photos = await album.getAssetListPaged(page: page, size: batchSize);
           
-          // Yüksek kaliteli thumbnail (tarihsel görünüm için)
+          // Optimize edilmiş thumbnail (daha hızlı yükleme için)
           final futures = photos.map((asset) async {
             try {
-              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(600, 600)); // Yüksek kalite thumbnail
+              // Daha küçük thumbnail ama hızlı
+              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)); // Küçültüldü (600->200)
               
               if (thumb != null) {
                 final hash = asset.id; // Basit hash
