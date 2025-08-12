@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'gallery_album_list_screen.dart';
 import 'recently_deleted_screen.dart';
 import '../widgets/debounced_button.dart';
-// import '../l10n/app_localizations.dart'; // kaldırıldı
+import '../theme/app_colors.dart'; // Renk teması import'u
 
 import 'dart:io';
 import 'dart:convert';
@@ -775,157 +775,212 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          widget.isDarkTheme
-              ? Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0A183D),
-                        Color(0xFF1B2A4D),
-                        Color(0xFF233A5E),
-                        Color(0xFFFFFFFF),
-                      ],
-                    ),
-                  ),
-                )
-              : const _WavyBackground(),
+          // Arka plan - çok açık pembe-mor tonunda
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFFFF0F5), // Çok açık pembe
+                  const Color(0xFFFFE6F0), // Açık pembe
+                  const Color(0xFFF8E6FF), // Açık mor
+                ],
+              ),
+            ),
+          ),
           // Sağ üst köşeye ayarlar ikonu
           Positioned(
             top: 32,
             right: 24,
-            child: IconButton(
-              icon: Icon(Icons.settings, color: Colors.white, size: 32),
-              onPressed: _showSettingsDialog,
-            ),
-          ),
-          Center(
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(40),
+                color: AppColors.textPrimary,
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+                    color: AppColors.cardShadow,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
-                  width: 1.5,
-                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Uygulama logosu (amblem)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 18),
-                    child: CircleAvatar(
-                      radius: 44,
-                      backgroundColor: Colors.white,
-                      child: ClipOval(
+              child: IconButton(
+                icon: Icon(Icons.settings, color: AppColors.primary, size: 24),
+                onPressed: _showSettingsDialog,
+              ),
+            ),
+          ),
+          // Ana içerik
+          SafeArea(
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+                decoration: BoxDecoration(
+                  color: AppColors.textPrimary,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.cardShadow,
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Uygulama logosu
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.mainGradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.cardShadow,
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
                         child: Image.asset(
                           'assets/logom.png',
-                          width: 72,
-                          height: 72,
+                          width: 60,
+                          height: 60,
                           fit: BoxFit.cover,
                         ),
                       ),
                     ),
-                  ),
-                  Text(
-                    appLoc.gallerySlogan,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
+                    const SizedBox(height: 24),
+                    
+                    // Ana başlık - eski font stili ile
+                    Text(
+                      'Galeri Temizliği',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    appLoc.mainScreenSubtitle,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 20,
+                    const SizedBox(height: 18),
+                    
+                    // Alt başlık - eski font stili ile
+                    Text(
+                      'Fotoğraflarınızı kolayca yönetin!',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 20,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 48),
+                    const SizedBox(height: 40),
 
-                  // Başla butonu
-                  Container(
-                    width: double.infinity,
-                    height: 60,
-                    child: DebouncedButton(
-                      onPressed: () async {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => GalleryAlbumListScreen()),
-                        );
-                      },
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE57373),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                          elevation: 8,
-                          shadowColor: Colors.black.withOpacity(0.3),
+                    // Başla butonu - beyaz arka planlı, yuvarlatılmış köşeli
+                    Container(
+                      width: double.infinity,
+                      height: 56,
+                      child: DebouncedButton(
+                        onPressed: () async {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => GalleryAlbumListScreen()),
+                          );
+                        },
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.textPrimary,
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: AppColors.primary.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            elevation: 2,
+                            shadowColor: AppColors.cardShadow,
+                          ),
+                          icon: Icon(Icons.photo, color: AppColors.primary, size: 20),
+                          label: Text(
+                            'Başla',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          onPressed: null, // DebouncedButton üstte olduğu için null
                         ),
-                        icon: const Icon(Icons.photo, color: Colors.white, size: 24),
-                        label: Text(appLoc.start, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                        onPressed: null, // DebouncedButton üstte olduğu için null
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  // Silinenler butonu - aynı boyutta
-                  Container(
-                    width: double.infinity,
-                    height: 60,
-                    child: DebouncedButton(
-                      onPressed: () async {
-                        final result = await Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const RecentlyDeletedScreen()),
-                        );
-                        // Geri dönünce her zaman sayacı yenile
-                        _loadDeletedFilesCount();
-                        
-                        // Eğer galeri yenilendi ise, ana ekranı da yenile
-                        if (result == true) {
-                          print('DEBUG: Galeri yenilendi, ana ekran yenileniyor...');
-                          setState(() {
-                            // UI'yi yenile
-                          });
-                        }
-                      },
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6D327A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                          elevation: 8,
-                          shadowColor: Colors.black.withOpacity(0.3),
+                    const SizedBox(height: 16),
+                    
+                    // Son Silinenler butonu - pembe-mor degrade arka planlı
+                    Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.mainGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.cardShadow,
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: DebouncedButton(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const RecentlyDeletedScreen()),
+                          );
+                          // Geri dönünce her zaman sayacı yenile
+                          _loadDeletedFilesCount();
+                          
+                          // Eğer galeri yenilendi ise, ana ekranı da yenile
+                          if (result == true) {
+                            print('DEBUG: Galeri yenilendi, ana ekran yenileniyor...');
+                            setState(() {
+                              // UI'yi yenile
+                            });
+                          }
+                        },
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: AppColors.textPrimary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                          ),
+                          icon: Icon(Icons.delete_outline, color: AppColors.textPrimary, size: 20),
+                          label: Text(
+                            _deletedFilesCount > 0 
+                              ? 'Son Silinenler ($_deletedFilesCount)' 
+                              : 'Son Silinenler', 
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          onPressed: null, // DebouncedButton üstte olduğu için null
                         ),
-                        icon: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
-                        label: Text(
-                          _deletedFilesCount > 0 
-                            ? '${appLoc.recentlyDeleted} ($_deletedFilesCount)' 
-                            : appLoc.recentlyDeleted, 
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
-                        ),
-                        onPressed: null, // DebouncedButton üstte olduğu için null
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -935,58 +990,4 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 }
 
-// Dalgalı arka plan (gallery_cleaner_screen.dart ile aynı)
-class _WavyBackground extends StatelessWidget {
-  const _WavyBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFB24592),
-            Color(0xFFF15F79),
-            Color(0xFF6D327A),
-            Color(0xFF1E3C72),
-          ],
-        ),
-      ),
-      child: CustomPaint(
-        painter: _WavesPainter(),
-        size: Size.infinite,
-      ),
-    );
-  }
-}
-
-class _WavesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-    paint.color = const Color(0xFF6D327A).withOpacity(0.18);
-    final path1 = Path();
-    path1.moveTo(0, size.height * 0.2);
-    path1.quadraticBezierTo(size.width * 0.25, size.height * 0.25, size.width * 0.5, size.height * 0.2);
-    path1.quadraticBezierTo(size.width * 0.75, size.height * 0.15, size.width, size.height * 0.2);
-    path1.lineTo(size.width, 0);
-    path1.lineTo(0, 0);
-    path1.close();
-    canvas.drawPath(path1, paint);
-
-    paint.color = const Color(0xFFF15F79).withOpacity(0.12);
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.7);
-    path2.quadraticBezierTo(size.width * 0.25, size.height * 0.75, size.width * 0.5, size.height * 0.7);
-    path2.quadraticBezierTo(size.width * 0.75, size.height * 0.65, size.width, size.height * 0.7);
-    path2.lineTo(size.width, size.height);
-    path2.lineTo(0, size.height);
-    path2.close();
-    canvas.drawPath(path2, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-} 
+ 

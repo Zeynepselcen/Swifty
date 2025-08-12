@@ -11,6 +11,7 @@ import '../widgets/debounced_button.dart'; // DebouncedButton import
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../theme/app_colors.dart'; // AppColors import
 
 
 import 'package:flutter/foundation.dart';
@@ -1111,22 +1112,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Theme.of(context).brightness == Brightness.dark
-              ? Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0A183D),
-                        Color(0xFF1B2A4D),
-                        Color(0xFF233A5E),
-                        Color(0xFF233A5E),
-                      ],
-                    ),
-                  ),
-                )
-              : const _WavyBackground(),
+          // Modern arka plan - pembe-mor degrade
+          Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.mainGradient,
+            ),
+          ),
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1431,13 +1422,27 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     ],
                   ),
                 ),
-                // Albüm listesi (klasör kartları veya aylık gruplama)
+                // Yumuşak geçiş eğrisi
+                Container(
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                ),
+                // Alt kısım - beyaz arka plan
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _viewType == ViewType.folder 
-                        ? _buildFolderView()
-                        : _buildMonthlyView(),
+                  child: Container(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _viewType == ViewType.folder 
+                          ? _buildFolderView()
+                          : _buildMonthlyView(),
+                    ),
                   ),
                 ),
               ],
@@ -1543,18 +1548,25 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             child: Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.10),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: ListTile(
                 leading: _isVideoMode ? null : _buildAlbumThumbnail(album.album),
                 title: Text(
                   album.album.name,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 subtitle: Text(
                   '${album.count} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                  style: const TextStyle(color: Colors.grey, fontSize: 15),
                 ),
                 onTap: null, // DebouncedButton üstte olduğu için null
               ),
@@ -1694,15 +1706,22 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.10),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: ListTile(
                     leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
                     title: Text(
                       monthKey,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Colors.black87,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -1710,13 +1729,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     subtitle: Text(
                       '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
                       style: const TextStyle(
-                        color: Colors.white70,
+                        color: Colors.grey,
                         fontSize: 15,
                       ),
                     ),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.white70,
+                      color: Colors.grey,
                       size: 16,
                     ),
                     onTap: () {
@@ -1743,10 +1762,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             );
           }
           
-          return const Center(
+          return Center(
             child: Text(
               'Fotoğraf bulunamadı',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: Colors.grey),
             ),
           );
         },
@@ -1764,15 +1783,22 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.10),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ListTile(
             leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
             title: Text(
               monthKey,
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -1780,13 +1806,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             subtitle: Text(
               '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
               style: const TextStyle(
-                color: Colors.white70,
+                color: Colors.grey,
                 fontSize: 15,
               ),
             ),
-            trailing: const Icon(
+            trailing: Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white70,
+              color: Colors.grey,
               size: 16,
             ),
             onTap: () {
@@ -1820,10 +1846,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.grey.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.calendar_today, color: Colors.white, size: 24),
+        child: Icon(Icons.calendar_today, color: Colors.grey, size: 24),
       );
     }
     
@@ -1833,7 +1859,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       height: 60,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.grey.withOpacity(0.1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
