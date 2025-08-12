@@ -52,21 +52,8 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
 
   void _navigateToNextScreen() async {
     if (mounted) {
-      // Onboarding'in daha önce gösterilip gösterilmediğini kontrol et
-      final prefs = await SharedPreferences.getInstance();
-      final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
-      
-      if (!hasSeenOnboarding) {
-        // İlk kez açılıyorsa onboarding göster
-        await prefs.setBool('has_seen_onboarding', true);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      } else {
-        // Daha önce gösterilmişse direkt ana ekrana geç
-        Navigator.pushReplacementNamed(context, '/main');
-      }
+      // Direkt ana ekrana geç - onboarding'i atla
+      Navigator.pushReplacementNamed(context, '/main');
     }
   }
 

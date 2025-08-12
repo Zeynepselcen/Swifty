@@ -375,11 +375,11 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     }
     
     print('DEBUG: _loadAllData başladı');
-    setState(() { 
-      _loading = true; 
+    setState(() {
+      _loading = true;
       _isLoadingAlbums = true; 
     });
-    
+
     try {
       // Sadece albümleri yükle, fotoğrafları sonra yükle
       await _fetchAlbumsInternal();
@@ -390,12 +390,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       } else {
         _isPhotoDataLoaded = true;
       }
-      _hasInitialized = true;
+        _hasInitialized = true;
       
     } finally {
       setState(() { 
-        _loading = false; 
-        _isLoadingAlbums = false; 
+        _loading = false;
+        _isLoadingAlbums = false;
       });
     }
     print('DEBUG: _loadAllData bitti');
@@ -487,12 +487,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   Future<void> _fetchAlbumsInternal() async {
     print('DEBUG: _fetchAlbumsInternal başladı - Video modu: $_isVideoMode');
-    final permission = await PhotoManager.requestPermissionExtend();
-    if (!permission.isAuth) {
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (!permission.isAuth) {
       _showPermissionDeniedDialog();
-      return;
-    }
-    
+        return;
+      }
+
     final requestType = _isVideoMode ? RequestType.video : RequestType.image;
     print('DEBUG: Albüm türü isteniyor: $requestType');
     final albums = await PhotoManager.getAssetPathList(type: requestType);
@@ -834,7 +834,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           if (file != null) {
             path = file.path;
           }
-        } catch (e) {
+    } catch (e) {
           // Path hatası durumunda sessizce devam et
         }
         
@@ -866,10 +866,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Albüm listesini yenile
   Future<void> _refreshAlbumList() async {
-    setState(() {
+      setState(() {
       _isLoadingAlbums = true;
-    });
-    
+      });
+
     try {
       await _fetchAlbumsInternal();
     } catch (e) {
@@ -949,9 +949,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text('OK'),
-          ),
-        ],
-      ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -995,127 +995,29 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         style: TextStyle(
           color: selected ? Colors.white : Colors.black87,
           fontWeight: FontWeight.bold,
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   @override
   Widget build(BuildContext context) {
     final appLoc = AppLocalizations.of(context)!;
     
-    if (_loading) {
-      return Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFB24592), // Pembe
-                Color(0xFFF15F79), // Açık pembe
-                Color(0xFF6D327A), // Mor
-                Color(0xFF1E3C72), // Mavi
-              ],
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Albümler yükleniyor...',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Lütfen bekleyin',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // Albümler yükleniyor ekranı kaldırıldı - direkt ana ekrana geç
     
-    // Fotoğraf yükleme progress overlay
-    if (_isPhotoLoading) {
-      return Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFB24592), // Pembe
-                Color(0xFFF15F79), // Açık pembe
-                Color(0xFF6D327A), // Mor
-                Color(0xFF1E3C72), // Mavi
-              ],
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 200,
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(
-                        value: _photoLoadingProgress,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                        strokeWidth: 4,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        _photoLoadingLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '${(_photoLoadingProgress * 100).toInt()}%',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // Fotoğraf yükleme progress overlay kaldırıldı - direkt ana ekrana geç
     
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Modern arka plan - pembe-mor degrade
+          // Modern arka plan - Tema moduna göre değişir
           Container(
-            decoration: const BoxDecoration(
-              gradient: AppColors.mainGradient,
+            decoration: BoxDecoration(
+              gradient: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkMainGradient
+                  : AppColors.mainGradient,
             ),
           ),
           SafeArea(
@@ -1224,12 +1126,14 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                   child: Center(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.13),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkButtonBackground
+                            : Colors.white.withOpacity(0.13),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                           _buildToggleButton(true, appLoc.photos),
                           _buildToggleButton(false, appLoc.videos),
                         ],
@@ -1261,25 +1165,25 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               child: Text(
                                 appLoc.size, 
                                 style: TextStyle(
-                                  color: Colors.white, 
+                                color: Colors.white,
                                   fontWeight: _sortType == AlbumSortType.size ? FontWeight.w700 : FontWeight.w500,
                                   fontSize: 16,
                                   letterSpacing: 0.5,
-                                ),
                               ),
+                            ),
                             ),
                             PopupMenuItem(
                               value: AlbumSortType.date,
-                              child: Text(
+                            child: Text(
                                 appLoc.date, 
-                                style: TextStyle(
+                              style: TextStyle(
                                   color: Colors.white, 
                                   fontWeight: _sortType == AlbumSortType.date ? FontWeight.w700 : FontWeight.w500,
-                                  fontSize: 16,
+                                fontSize: 16,
                                   letterSpacing: 0.5,
-                                ),
                               ),
                             ),
+                          ),
                             PopupMenuItem(
                               value: AlbumSortType.name,
                               child: Text(
@@ -1293,38 +1197,53 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               ),
                             ),
                           ],
-                                                          child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.white, width: 1.5),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          _sortType == AlbumSortType.size
-                                              ? appLoc.size
-                                              : _sortType == AlbumSortType.date
-                                                  ? appLoc.date
-                                                  : appLoc.name,
-                                          style: const TextStyle(
-                                            color: Colors.white, 
-                                            fontWeight: FontWeight.w700, 
-                                            fontSize: 14,
-                                            letterSpacing: 0.5,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
-                                    ],
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkButtonBackground
+                                  : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkBorderColor
+                                    : Colors.grey.withOpacity(0.3),
+                                width: 1,
+                              ),
+                          ),
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                            children: [
+                                Flexible(
+                                  child: Text(
+                                    _sortType == AlbumSortType.size
+                                        ? appLoc.size
+                                        : _sortType == AlbumSortType.date
+                                            ? appLoc.date
+                                            : appLoc.name,
+                                style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextPrimary
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkAccent
+                                      : Colors.grey,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
                       ),
                       const Spacer(), // Sağa itmek için boşluk
                       const SizedBox(width: 8),
@@ -1341,38 +1260,42 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: _viewType == ViewType.folder 
-                                    ? Colors.white.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                        decoration: BoxDecoration(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkButtonBackground
+                                    : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white,
-                                  width: _viewType == ViewType.folder ? 2 : 1,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkBorderColor
+                                      : Colors.grey.withOpacity(0.3),
+                                  width: 1,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                                   Icon(
-                                    Icons.folder,
-                                    color: Colors.white,
+                              Icons.folder,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey,
                                     size: 14,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     appLoc.folder,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: _viewType == ViewType.folder 
-                                          ? FontWeight.bold 
-                                          : FontWeight.normal,
+                              style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextPrimary
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.w600,
                                       fontSize: 15,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
                           ),
                           const SizedBox(width: 6),
                           // Tarih görünümü butonu
@@ -1384,61 +1307,69 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: _viewType == ViewType.date 
-                                    ? Colors.white.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                        decoration: BoxDecoration(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkButtonBackground
+                                    : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Colors.white,
-                                  width: _viewType == ViewType.date ? 2 : 1,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkBorderColor
+                                      : Colors.grey.withOpacity(0.3),
+                                  width: 1,
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                                   Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.white,
+                              Icons.calendar_today,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkAccent
+                                        : Colors.grey,
                                     size: 14,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     appLoc.date,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: _viewType == ViewType.date 
-                                          ? FontWeight.bold 
-                                          : FontWeight.normal,
+                              style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkTextPrimary
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.w600,
                                       fontSize: 15,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                              ),
+                        ),
                       ),
                     ],
                   ),
+                    ],
+                  ),
                 ),
-                // Yumuşak geçiş eğrisi
+                                // Yumuşak geçiş eğrisi
                 Container(
                   height: 40,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkBackgroundSecondary
+                        : Colors.white,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
                     ),
                   ),
                 ),
-                // Alt kısım - beyaz arka plan
+                // Alt kısım - tema moduna göre arka plan
                 Expanded(
                   child: Container(
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkBackgroundSecondary
+                        : Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: _viewType == ViewType.folder 
                           ? _buildFolderView()
                           : _buildMonthlyView(),
@@ -1492,12 +1423,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.darkAccent,
+                    ),
                     child: Text(appLoc.cancel),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.darkAccent,
                     ),
                     child: Text(
                       appLoc.deleteAll,
@@ -1548,13 +1482,17 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             child: Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkCardBackground
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withOpacity(0.4)
+                        : Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -1562,11 +1500,22 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 leading: _isVideoMode ? null : _buildAlbumThumbnail(album.album),
                 title: Text(
                   album.album.name,
-                  style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
                 subtitle: Text(
                   '${album.count} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 15),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : Colors.grey,
+                    fontSize: 15,
+                  ),
                 ),
                 onTap: null, // DebouncedButton üstte olduğu için null
               ),
@@ -1695,47 +1644,57 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 ? GalleryService.groupVideosByMonth(snapshot.data!)
                 : GalleryService.groupPhotosByMonth(snapshot.data!);
             _photosByMonth = groupedPhotos;
-            
-            return ListView.builder(
+    
+    return ListView.builder(
               physics: const FastScrollPhysics(),
               itemCount: groupedPhotos.length,
-              itemBuilder: (context, idx) {
+      itemBuilder: (context, idx) {
                 final monthKey = groupedPhotos.keys.elementAt(idx);
                 final photos = groupedPhotos[monthKey]!;
                 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkCardBackground
+                        : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
                     leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
                     title: Text(
                       monthKey,
-                      style: const TextStyle(
-                        color: Colors.black87,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : Colors.black87,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
                     ),
                     subtitle: Text(
                       '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
-                      style: const TextStyle(
-                        color: Colors.grey,
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey,
                         fontSize: 15,
                       ),
                     ),
                     trailing: Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.grey,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextSecondary
+                          : Colors.grey,
                       size: 16,
                     ),
                     onTap: () {
@@ -1744,7 +1703,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                         context,
                         MaterialPageRoute(
                           builder: (context) => GalleryCleanerScreen(
-                            isVideoMode: false,
+                            isVideoMode: _isVideoMode,
                             albumName: monthKey,
                             albumId: monthKey,
                             photos: photos,
@@ -1783,11 +1742,15 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkCardBackground
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1797,22 +1760,28 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
             title: Text(
               monthKey,
-              style: const TextStyle(
-                color: Colors.black87,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : Colors.black87,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
             ),
             subtitle: Text(
               '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : Colors.grey,
                 fontSize: 15,
               ),
             ),
             trailing: Icon(
               Icons.arrow_forward_ios,
-              color: Colors.grey,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextSecondary
+                  : Colors.grey,
               size: 16,
             ),
             onTap: () {
@@ -1821,7 +1790,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 context,
                 MaterialPageRoute(
                   builder: (context) => GalleryCleanerScreen(
-                    isVideoMode: false,
+                    isVideoMode: _isVideoMode,
                     albumName: monthKey,
                     albumId: monthKey,
                     photos: photos,
@@ -2025,7 +1994,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected 
+              ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
           boxShadow: selected
               ? [
@@ -2040,7 +2011,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         child: Text(
           text,
           style: TextStyle(
-            color: selected ? const Color(0xFF1B2A4D) : Colors.white,
+            color: selected 
+                ? (Theme.of(context).brightness == Brightness.dark ? AppColors.darkBackgroundPrimary : const Color(0xFF1B2A4D))
+                : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),

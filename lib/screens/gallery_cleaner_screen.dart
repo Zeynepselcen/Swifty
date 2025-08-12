@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart'; // compute için
 import 'dart:io' show Directory;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import '../theme/app_colors.dart'; // Renk teması import'u
 
 import 'dart:convert';
 import 'dart:math'; // Random için eklendi
@@ -353,6 +354,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             onPressed: () {
               Navigator.of(context).pop(false); // Deny
             },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.darkAccent,
+            ),
             child: Text(appLoc?.cancel ?? 'İptal'),
           ),
           TextButton(
@@ -360,7 +364,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               Navigator.of(context).pop(true); // Allow
             },
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: AppColors.darkAccent,
             ),
             child: const Text('Sil'),
           ),
@@ -888,30 +892,38 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       onWillPop: _onWillPop,
       child: Scaffold(
         // AppBar kaldırıldı, başlık ve geri butonu Stack ile eklenecek
-                backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkBackgroundPrimary
+            : Colors.white,
         body: Stack(
           children: [
-            // Üst kısım pembe gradient, alt kısım beyaz
+            // Üst kısım gradient, alt kısım tema moduna göre
             Column(
               children: [
                 Expanded(
                   flex: 1,
                   child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFE91E63), // Pembe
-                          Color(0xFF9C27B0), // Mor
-                        ],
-                      ),
+                    decoration: BoxDecoration(
+                      gradient: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkMainGradient
+                          : const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFE91E63), // Pembe
+                                Color(0xFF9C27B0), // Mor
+                              ],
+                            ),
                     ),
                   ),
                 ),
                 Expanded(
                   flex: 4,
-                  child: Container(color: Colors.white),
+                  child: Container(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkBackgroundSecondary
+                        : Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -932,20 +944,30 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         child: InkWell(
                           borderRadius: BorderRadius.circular(24),
                           onTap: null, // DebouncedButton üstte olduğu için null
-                          child: Container(
+                                                      child: Container(
                             padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkButtonBackground
+                                  : Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.black.withOpacity(0.3)
+                                      : Colors.black.withOpacity(0.2),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
               ),
             ],
           ),
-                            child: const Icon(Icons.arrow_back, color: Color(0xFF0A183D), size: 24),
+                            child: Icon(
+                              Icons.arrow_back, 
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkAccent
+                                  : const Color(0xFF0A183D), 
+                              size: 24
+                            ),
         ),
                   ),
               ),
@@ -968,19 +990,33 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkButtonBackground.withOpacity(0.8)
+                            : Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkBorderColor
+                              : Colors.white.withOpacity(0.5),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.photo, color: Colors.white, size: 14),
+                          Icon(
+                            Icons.photo, 
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkAccent
+                                : Colors.white, 
+                            size: 14
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '${photos.length - currentIndex} KALAN',
-                            style: const TextStyle(
-                          color: Colors.white,
+                            style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : Colors.white,
                               fontSize: 13,
                           fontWeight: FontWeight.bold,
                   ),
@@ -992,14 +1028,22 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkButtonBackground.withOpacity(0.8)
+                            : Colors.white.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkBorderColor
+                              : Colors.white.withOpacity(0.5),
+                        ),
                       ),
                       child: Text(
                         '${_formatBytes(_getTotalDeletedSize())} KAZANILAN',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1015,12 +1059,21 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                     child: Center(
                       child: Text(
                         widget.albumName ?? '',
-                    style: const TextStyle(
-                color: Colors.white,
+                    style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : Colors.white,
                           fontSize: 24,
                 fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
-                          shadows: [Shadow(color: Color(0xFF0A183D), blurRadius: 8)],
+                          shadows: [
+                            Shadow(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.black.withOpacity(0.5)
+                                  : const Color(0xFF0A183D), 
+                              blurRadius: 8
+                            )
+                          ],
                     ),
                         textAlign: TextAlign.center,
               ),

@@ -232,7 +232,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: widget.isDarkTheme ? Colors.grey.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+                      backgroundColor: widget.isDarkTheme 
+                          ? AppColors.darkAccent.withOpacity(0.2)
+                          : AppColors.gradientStart,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -240,7 +242,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     child: Text(
                       appLoc.cancel,
                       style: TextStyle(
-                        color: widget.isDarkTheme ? Colors.grey.shade300 : Colors.grey.shade700,
+                        color: widget.isDarkTheme 
+                            ? AppColors.darkAccent
+                            : Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.3,
@@ -775,18 +779,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Arka plan - çok açık soft pembe-mor tonunda
+          // Arka plan - Tema moduna göre değişir
           Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFFF8FA), // Çok açık soft pembe
-                  const Color(0xFFFFF0F5), // Açık soft pembe
-                  const Color(0xFFF8F0FF), // Açık soft mor
-                ],
-              ),
+              gradient: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkMainGradient
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFFFFF8FA), // Çok açık soft pembe
+                        const Color(0xFFFFF0F5), // Açık soft pembe
+                        const Color(0xFFF8F0FF), // Açık soft mor
+                      ],
+                    ),
             ),
           ),
           // Sağ üst köşeye ayarlar ikonu
@@ -818,11 +824,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
                 padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
                 decoration: BoxDecoration(
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkCardBackground
+                      : AppColors.textPrimary,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.cardShadow,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black.withOpacity(0.3)
+                          : AppColors.cardShadow,
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -863,7 +873,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     Text(
                       'Galeri Temizliği',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.primary,
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
@@ -876,7 +888,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     Text(
                       'Fotoğraflarınızı kolayca yönetin!',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                         fontSize: 20,
                       ),
                       textAlign: TextAlign.center,
@@ -895,26 +909,42 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         },
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.textPrimary,
-                            foregroundColor: AppColors.primary,
+                            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkButtonBackground
+                                : AppColors.textPrimary,
+                            foregroundColor: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkAccent
+                                : AppColors.primary,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                               side: BorderSide(
-                                color: AppColors.primary.withOpacity(0.2),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkAccent.withOpacity(0.2)
+                                    : AppColors.primary.withOpacity(0.2),
                                 width: 1,
                               ),
                             ),
                             elevation: 2,
-                            shadowColor: AppColors.cardShadow,
+                            shadowColor: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.black.withOpacity(0.3)
+                                : AppColors.cardShadow,
                           ),
-                          icon: Icon(Icons.photo, color: AppColors.primary, size: 20),
+                          icon: Icon(
+                            Icons.photo, 
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : AppColors.primary, 
+                            size: 20
+                          ),
                           label: Text(
                             'Başla',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : AppColors.primary,
                             ),
                           ),
                           onPressed: null, // DebouncedButton üstte olduğu için null
@@ -923,16 +953,27 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 16),
                     
-                    // Son Silinenler butonu - pembe-mor degrade arka planlı
+                    // Son Silinenler butonu - tema moduna göre arka plan
                     Container(
                       width: double.infinity,
                       height: 56,
                       decoration: BoxDecoration(
-                        gradient: AppColors.mainGradient,
+                        gradient: Theme.of(context).brightness == Brightness.dark
+                            ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.darkAccent,
+                                  AppColors.darkAccentLight,
+                                ],
+                              )
+                            : AppColors.mainGradient,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.cardShadow,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.black.withOpacity(0.3)
+                                : AppColors.cardShadow,
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -990,4 +1031,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 }
 
+ 
+ 
  
