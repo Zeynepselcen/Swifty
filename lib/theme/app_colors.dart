@@ -18,6 +18,19 @@ class AppColors {
   static const Color backgroundSecondary = Color(0xFF1B2A4D);
   static const Color backgroundTertiary = Color(0xFF233A5E);
   
+  // Koyu mod renkleri - Spotify tarzında, beyaz ağırlıklı
+  static const Color darkBackgroundPrimary = Color(0xFF121212); // Ana koyu arka plan
+  static const Color darkBackgroundSecondary = Color(0xFF181818); // İkincil koyu arka plan
+  static const Color darkBackgroundTertiary = Color(0xFF282828); // Üçüncül koyu arka plan
+  static const Color darkCardBackground = Color(0xFF282828); // Kart arka planı
+  static const Color darkButtonBackground = Color(0xFF3E3E3E); // Buton arka planı
+  static const Color darkBorderColor = Color(0xFF404040); // Border rengi
+  static const Color darkAccent = Color(0xFF1DB954); // Spotify yeşili
+  static const Color darkAccentLight = Color(0xFF1ED760); // Açık Spotify yeşili
+  static const Color darkTextPrimary = Colors.white; // Ana metin rengi
+  static const Color darkTextSecondary = Color(0xFFB3B3B3); // İkincil metin rengi
+  static const Color darkTextTertiary = Color(0xFF727272); // Üçüncül metin rengi
+  
   // Metin renkleri
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFFB0BEC5);
@@ -95,6 +108,27 @@ class AppColors {
     colors: [
       accent,
       gradientStart,
+    ],
+  );
+  
+  /// Koyu mod gradient - Daha belirgin ayrım için
+  static const LinearGradient darkMainGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF0A0A0A), // Daha koyu üst kısım
+      Color(0xFF1A1A1A), // Orta kısım
+      Color(0xFF2A2A2A), // Alt kısım
+    ],
+  );
+  
+  /// Koyu mod kart gradient
+  static const LinearGradient darkCardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      darkCardBackground,
+      darkBackgroundSecondary,
     ],
   );
   
