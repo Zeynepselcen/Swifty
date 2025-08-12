@@ -121,7 +121,20 @@ class _MyAppState extends State<MyApp> {
           titleSmall: TextStyle(color: Colors.white),
         ),
       ),
-      home: const VideoSplashScreen(),
+      home: Builder(
+        builder: (context) {
+          return MainScreen(
+            onLocaleChanged: _setLocale,
+            currentLocale: _locale,
+            isDarkTheme: _themeMode == ThemeMode.dark,
+            onThemeChanged: () {
+              setState(() {
+                _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+              });
+            },
+          );
+        },
+      ),
       routes: {
         '/main': (context) => Builder(
           builder: (context) {

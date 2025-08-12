@@ -7,11 +7,11 @@ class AppColors {
   static const Color secondary = Color(0xFF0A183D);
   static const Color accent = Color(0xFF4DB6AC);
   
-  // Gradient renkleri - Resimdeki güzel pembe-mor tonları
-  static const Color gradientStart = Color(0xFFFF5F9E); // Parlak pembe
-  static const Color gradientMiddle1 = Color(0xFFE91E63); // Orta pembe
-  static const Color gradientMiddle2 = Color(0xFF9C27B0); // Orta mor
-  static const Color gradientEnd = Color(0xFFA44DFF); // Parlak mor
+  // Gradient renkleri - Daha güzel pembe-mor tonları
+  static const Color gradientStart = Color(0xFFFF6B9D); // Canlı pembe
+  static const Color gradientMiddle1 = Color.fromARGB(255, 215, 92, 133); // Orta pembe
+  static const Color gradientMiddle2 = Color.fromARGB(255, 187, 109, 201); // Orta mor
+  static const Color gradientEnd = Color.fromARGB(255, 167, 136, 221); // Koyu mor
   
   // Arka plan renkleri
   static const Color backgroundPrimary = Color(0xFF0A183D);

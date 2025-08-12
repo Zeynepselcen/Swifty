@@ -775,16 +775,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Arka plan - çok açık pembe-mor tonunda
+          // Arka plan - çok açık soft pembe-mor tonunda
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFFFFF0F5), // Çok açık pembe
-                  const Color(0xFFFFE6F0), // Açık pembe
-                  const Color(0xFFF8E6FF), // Açık mor
+                  const Color(0xFFFFF8FA), // Çok açık soft pembe
+                  const Color(0xFFFFF0F5), // Açık soft pembe
+                  const Color(0xFFF8F0FF), // Açık soft mor
                 ],
               ),
             ),
