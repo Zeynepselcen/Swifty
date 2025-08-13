@@ -234,7 +234,7 @@ class GalleryService {
     final albums = await PhotoManager.getAssetPathList(type: RequestType.image);
     
     // Eğer limit belirtilmişse hızlı yükleme, yoksa tüm fotoğrafları yükle
-    if (limit != null && limit <= 500) {
+    if (limit != null && limit <= 2000) { // Limit artırıldı (500->2000)
       // Hızlı yükleme modu (500'den az fotoğraf istenirse)
       final actualLimit = limit;
       
@@ -252,13 +252,13 @@ class GalleryService {
       for (final albumData in albumsWithCounts.take(2)) {
         final album = albumData['album'] as AssetPathEntity;
         final totalCount = albumData['count'] as int;
-        final loadCount = (totalCount * 0.03).ceil().clamp(1, 20);
+        final loadCount = (totalCount * 0.1).ceil().clamp(1, 50); // Daha fazla fotoğraf yükle (0.03->0.1, 20->50)
         
         final photos = await album.getAssetListPaged(page: 0, size: loadCount);
         
         final futures = photos.take(loadCount).map((asset) async {
           try {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(500, 500)); // 150'den 500'e yüksek kalite
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400)); // Hızlı yükleme için küçültüldü (800->400)
             
             if (thumb != null) {
               final hash = asset.id;
@@ -295,7 +295,7 @@ class GalleryService {
         final totalCount = await album.assetCountAsync;
         
         // Büyük albümler için optimize edilmiş batch yükleme
-        final batchSize = 200; // Daha da büyük batch (daha hızlı)
+        final batchSize = 300; // Batch size artırıldı (200->300) - daha hızlı
         final totalBatches = (totalCount / batchSize).ceil();
         
         for (int page = 0; page < totalBatches; page++) {
@@ -304,8 +304,8 @@ class GalleryService {
           // Optimize edilmiş thumbnail (daha hızlı yükleme için)
           final futures = photos.map((asset) async {
             try {
-              // Daha küçük thumbnail ama hızlı
-              final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200)); // Küçültüldü (600->200)
+                          // Yüksek kalite thumbnail - hızlı yükleme
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(800, 800)); // Kalite artırıldı (200->800)
               
               if (thumb != null) {
                 final hash = asset.id; // Basit hash
@@ -315,7 +315,7 @@ class GalleryService {
                   date: asset.createDateTime, 
                   hash: hash, 
                   type: MediaType.image, 
-                  path: null, // Path'i atla (çok daha hızlı)
+                  path: asset.id, // Path yerine ID kullan (video yürütme için gerekli)
                   name: asset.title ?? 'Unknown',
                 );
               }
@@ -403,6 +403,11 @@ class GalleryService {
   }
 
   static Future<List<PhotoItem>> loadVideos({int? limit}) async {
+    // Hızlı yükleme için limit kontrolü
+    if (limit != null && limit <= 2000) {
+      return _loadVideosFast(limit);
+    }
+    
     List<PhotoItem> result = [];
     final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
     
@@ -412,7 +417,7 @@ class GalleryService {
       
       // Her albüm için batch loading kullan
       final totalCount = await album.assetCountAsync;
-      final batchSize = 200; // Optimal batch size - hızlı ve stabil
+      final batchSize = 300; // Batch size artırıldı (200->300) - daha hızlı
       final totalBatches = (totalCount / batchSize).ceil();
       
       for (int page = 0; page < totalBatches; page++) {
@@ -421,7 +426,7 @@ class GalleryService {
         // Her batch'i paralel olarak işle
         final futures = videos.map((asset) async {
           try {
-            // Video klasörlerinde hiç resim gösterme - sadece metadata al
+            // Video thumbnail'i yüksek kalitede al
             String? path;
             
             try {
@@ -432,11 +437,19 @@ class GalleryService {
               path = null; // Hata olursa null bırak
             }
             
+            // Video thumbnail'i yüksek kalitede al
+            Uint8List? thumb;
+            try {
+              thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(800, 800));
+            } catch (e) {
+              thumb = Uint8List(0); // Hata olursa boş thumbnail
+            }
+            
             // Hash hesaplamayı basitleştir (çok daha hızlı)
             final hash = asset.id; // MD5 yerine asset ID kullan
             return PhotoItem(
               id: asset.id, 
-              thumb: Uint8List(0), // Boş thumbnail
+              thumb: thumb ?? Uint8List(0),
               date: asset.createDateTime, 
               hash: hash, 
               type: MediaType.video, 
@@ -598,5 +611,66 @@ class GalleryService {
       if (file != null) return file.path;
     }
     return '';
+  }
+
+  // Hızlı video yükleme fonksiyonu
+  static Future<List<PhotoItem>> _loadVideosFast(int limit) async {
+    List<PhotoItem> result = [];
+    final albums = await PhotoManager.getAssetPathList(type: RequestType.video);
+    
+    // Sadece en büyük 2 albümden hızlıca video topla
+    final sortedAlbums = List<AssetPathEntity>.from(albums);
+    final albumCounts = await Future.wait(sortedAlbums.map((a) => a.assetCountAsync));
+    
+    // Albümleri boyutlarına göre sırala (en büyük önce)
+    final albumsWithCounts = List.generate(
+      sortedAlbums.length, 
+      (i) => {'album': sortedAlbums[i], 'count': albumCounts[i]}
+    );
+    albumsWithCounts.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    
+    for (final albumData in albumsWithCounts.take(2)) {
+      final album = albumData['album'] as AssetPathEntity;
+      final totalCount = albumData['count'] as int;
+      final loadCount = (totalCount * 0.1).ceil().clamp(1, 50);
+      
+      final videos = await album.getAssetListPaged(page: 0, size: loadCount);
+      
+      final futures = videos.take(loadCount).map((asset) async {
+        try {
+          // Video thumbnail'i hızlı yükleme için küçük boyut
+          Uint8List? thumb;
+          try {
+            thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+          } catch (e) {
+            thumb = Uint8List(0);
+          }
+          
+          final hash = asset.id;
+                      return PhotoItem(
+              id: asset.id, 
+              thumb: thumb ?? Uint8List(0),
+              date: asset.createDateTime, 
+              hash: hash, 
+              type: MediaType.video, 
+              path: asset.id, // Path yerine ID kullan (video yürütme için gerekli)
+              name: asset.title ?? 'Unknown',
+            );
+        } catch (e) {
+          // Hata olursa geç
+        }
+        return null;
+      });
+      
+      final batchResults = await Future.wait(futures);
+      result.addAll(batchResults.where((item) => item != null).cast<PhotoItem>());
+      
+      if (result.length >= limit) {
+        result = result.take(limit).toList();
+        break;
+      }
+    }
+    
+    return result;
   }
 } 

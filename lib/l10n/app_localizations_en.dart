@@ -69,10 +69,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchPhotos => 'Search photos';
 
   @override
-  String get videos => 'Videos';
+  String get videos => 'Video';
 
   @override
-  String get photos => 'Photos';
+  String get photos => 'Photo';
 
   @override
   String get size => 'size';

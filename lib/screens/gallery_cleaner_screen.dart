@@ -339,6 +339,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     final totalSize = _getTotalDeletedSize();
     final formattedSize = _formatBytes(totalSize);
     
+    // Haptic feedback
+    HapticFeedback.lightImpact();
+    
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -359,12 +362,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             ),
             child: Text(AppLocalizations.of(context)!.cancel),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop(true); // Allow
             },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.darkAccent,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
             ),
             child: Text(AppLocalizations.of(context)!.delete),
           ),
@@ -404,13 +408,16 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       // Önce tüm dosyaları hazırla ve orijinal bilgilerini sakla
       for (final photoId in toDelete) {
         final photo = photos.firstWhere((p) => p.id == photoId);
-        if (photo.path != null && photo.path!.isNotEmpty) {
-          try {
-            // Orijinal dosya bilgilerini sakla
-            final originalFile = File(photo.path!);
-            if (await originalFile.exists()) {
+        try {
+          // AssetEntity'den dosya yolunu al
+          final asset = await AssetEntity.fromId(photo.id);
+          if (asset != null) {
+            final file = await asset.file;
+            if (file != null && await file.exists()) {
+              // Orijinal dosya bilgilerini sakla
+              final originalFile = file;
               // Orijinal klasör bilgisini al
-              final originalDir = Directory(path.dirname(photo.path!));
+              final originalDir = Directory(path.dirname(file.path));
               final originalFolderName = path.basename(originalDir.path);
               
               // Kendi trash klasörümüzü oluştur
@@ -422,7 +429,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                 await swiftyTrashDir.create(recursive: true);
               }
               
-              final fileName = path.basename(photo.path!);
+              final fileName = path.basename(file.path);
               final timestamp = DateTime.now().millisecondsSinceEpoch;
               final trashFileName = '${timestamp}_$fileName';
               final trashPath = '${swiftyTrashDir.path}/$trashFileName';
@@ -433,7 +440,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               // Silinecek dosya bilgilerini sakla
               filesToDelete.add(photoId);
               deletedFileInfos.add({
-                'originalPath': photo.path!,
+                'originalPath': file.path,
                 'trashPath': trashPath,
                 'photoId': photo.id,
                 'fileName': fileName,
@@ -443,13 +450,13 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                 'expiresAt': DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
               });
               
-              print('Dosya hazırlandı: ${photo.path} -> $trashPath');
+              print('Dosya hazırlandı: ${file.path} -> $trashPath');
             }
-          } catch (e) {
-            print('Dosya hazırlama hatası: $e');
-            // Hata durumunda sadece silme listesine ekle
-            filesToDelete.add(photoId);
           }
+        } catch (e) {
+          print('Dosya hazırlama hatası: $e');
+          // Hata durumunda sadece silme listesine ekle
+          filesToDelete.add(photoId);
         }
       }
       
@@ -686,7 +693,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$restored dosya başarıyla geri alındı'),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.accent
+                : AppColors.accent,
           ),
         );
       } else {
@@ -871,17 +880,24 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
     if (_videoControllers.containsKey(index)) return;
     
     try {
-      // PhotoItem'dan path'i al
+      // PhotoItem'dan asset'i al
       final photo = photos.firstWhere((p) => p.id == videoId);
       
-      if (mounted && photo.path != null && photo.path!.isNotEmpty) {
-        final controller = VideoPlayerController.file(File(photo.path!));
-        await controller.initialize();
-        
-        if (mounted) {
-          setState(() {
-            _videoControllers[index] = controller;
-          });
+      if (mounted) {
+        // AssetEntity'den dosya yolunu al
+        final asset = await AssetEntity.fromId(photo.id);
+        if (asset != null) {
+          final file = await asset.file;
+          if (file != null && await file.exists()) {
+            final controller = VideoPlayerController.file(file);
+            await controller.initialize();
+            
+            if (mounted) {
+              setState(() {
+                _videoControllers[index] = controller;
+              });
+            }
+          }
         }
       }
     } catch (e) {

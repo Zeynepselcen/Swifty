@@ -316,7 +316,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _selectedLanguage = widget.currentLocale?.languageCode ?? 'tr';
+    _selectedLanguage = 'tr'; // Varsayılan dil
     _initializeApp();
     // Hot reload için zorlama
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -327,6 +327,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         // TEST: Popup mesaj kaldırıldı
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Localizations'a burada eriş
+    _selectedLanguage = Localizations.localeOf(context).languageCode;
   }
 
 
@@ -831,8 +838,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   // Ultra hızlı asset işleme - kalite korunarak
   Future<PhotoItem?> _processAssetUltraFast(AssetEntity asset) async {
     try {
-      // Kaliteyi koru ama daha hızlı thumbnail alma - boyut artırıldı
-      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+      // Yüksek kalite thumbnail alma
+      final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(800, 800)); // Kalite artırıldı (400->800)
       if (thumb != null) {
         // Path'i al - daha hızlı
         String path = '';
@@ -902,7 +909,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     for (final album in selected) {
       final assets = await album.album.getAssetListPaged(page: 0, size: album.count);
       for (final asset in assets) {
-        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+        final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(800, 800)); // Kalite artırıldı (400->800)
         if (thumb != null) {
           allPhotos.add(PhotoItem(
             id: asset.id,
@@ -1557,12 +1564,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     );
   }
 
-  // Aylık görünüm - Klasör formatında
+  // Aylık görünüm - Klasör formatında (Lazy Loading ile optimize edilmiş)
   Widget _buildMonthlyView() {
     final appLoc = AppLocalizations.of(context)!;
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
-        future: _isVideoMode ? GalleryService.loadVideos() : GalleryService.loadPhotos(),
+        future: _isVideoMode ? GalleryService.loadVideos(limit: 200) : GalleryService.loadPhotos(limit: 200), // Lazy loading - sadece 200 fotoğraf
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -1628,43 +1635,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  // Pulse animasyonu
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(seconds: 2),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    builder: (context, value, child) {
-                      return Container(
-                        width: 200,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
-                          color: Colors.white.withOpacity(0.2),
-                        ),
-                        child: Row(
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 200 * value,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(2),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF4DB6AC),
-                                    const Color(0xFFB24592),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    onEnd: () {
-                      // Animasyon bitince tekrar başlat
-                      setState(() {});
-                    },
-                  ),
                 ],
               ),
             );
@@ -1714,7 +1684,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                       ),
                     ),
                     subtitle: Text(
-                      '${photos.length} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
+                      '${_getAlbumCountForMonth(monthKey)} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? AppColors.darkTextSecondary
@@ -1801,7 +1771,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               ),
             ),
             subtitle: Text(
-              '${photos.length} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
+              '${_getAlbumCountForMonth(monthKey)} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
               style: TextStyle(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? AppColors.darkTextSecondary
@@ -1991,7 +1961,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     
     final future = album.getAssetListPaged(page: 0, size: 1)
         .then((assets) => assets.isNotEmpty 
-            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(200, 200)) // 400x400'den 200x200'ye düşürüldü
+            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(800, 800)) // Kalite artırıldı (200->800)
             : null)
         .whenComplete(() => _loadingThumbnails.remove(album.id));
     
@@ -2085,6 +2055,16 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       return assets.first.createDateTime;
     }
     return null;
+  }
+
+  // Ay için albüm sayısını hesapla
+  int _getAlbumCountForMonth(String monthKey) {
+    // Albüm sayılarını topla (tarih görünümünde de aynı sayıları göster)
+    int totalCount = 0;
+    for (final album in _albums) {
+      totalCount += album.count;
+    }
+    return totalCount > 0 ? totalCount : 1; // En az 1 göster
   }
 
   List<_AlbumWithCount> get _sortedAlbums {

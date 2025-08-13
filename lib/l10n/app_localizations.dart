@@ -219,13 +219,13 @@ abstract class AppLocalizations {
   /// No description provided for @videos.
   ///
   /// In en, this message translates to:
-  /// **'Videos'**
+  /// **'Video'**
   String get videos;
 
   /// No description provided for @photos.
   ///
   /// In en, this message translates to:
-  /// **'Photos'**
+  /// **'Photo'**
   String get photos;
 
   /// No description provided for @size.

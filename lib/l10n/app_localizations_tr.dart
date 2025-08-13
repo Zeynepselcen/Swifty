@@ -69,10 +69,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchPhotos => 'Fotoğraf ara';
 
   @override
-  String get videos => 'Videolar';
+  String get videos => 'Video';
 
   @override
-  String get photos => 'Fotoğraflar';
+  String get photos => 'Fotoğraf';
 
   @override
   String get size => 'boyut';

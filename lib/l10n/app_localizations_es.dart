@@ -70,10 +70,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchPhotos => 'Buscar fotos';
 
   @override
-  String get videos => 'Videos';
+  String get videos => 'Video';
 
   @override
-  String get photos => 'Fotos';
+  String get photos => 'Foto';
 
   @override
   String get size => 'tamaño';
