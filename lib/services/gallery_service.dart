@@ -252,13 +252,13 @@ class GalleryService {
       for (final albumData in albumsWithCounts.take(2)) {
         final album = albumData['album'] as AssetPathEntity;
         final totalCount = albumData['count'] as int;
-        final loadCount = (totalCount * 0.1).ceil().clamp(1, 50); // Daha fazla fotoğraf yükle (0.03->0.1, 20->50)
+        final loadCount = (totalCount * 0.15).ceil().clamp(1, 100); // Daha fazla fotoğraf yükle (0.1->0.15, 50->100)
         
         final photos = await album.getAssetListPaged(page: 0, size: loadCount);
         
         final futures = photos.take(loadCount).map((asset) async {
           try {
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400)); // Hızlı yükleme için küçültüldü (800->400)
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(300, 300)); // Daha hızlı yükleme için küçültüldü (400->300)
             
             if (thumb != null) {
               final hash = asset.id;
@@ -295,7 +295,7 @@ class GalleryService {
         final totalCount = await album.assetCountAsync;
         
         // Büyük albümler için optimize edilmiş batch yükleme
-        final batchSize = 300; // Batch size artırıldı (200->300) - daha hızlı
+        final batchSize = 500; // Batch size artırıldı (300->500) - daha hızlı
         final totalBatches = (totalCount / batchSize).ceil();
         
         for (int page = 0; page < totalBatches; page++) {
@@ -305,7 +305,7 @@ class GalleryService {
           final futures = photos.map((asset) async {
             try {
                           // Yüksek kalite thumbnail - hızlı yükleme
-            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(800, 800)); // Kalite artırıldı (200->800)
+            final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(600, 600)); // Optimize edilmiş kalite (800->600)
               
               if (thumb != null) {
                 final hash = asset.id; // Basit hash
@@ -632,7 +632,7 @@ class GalleryService {
     for (final albumData in albumsWithCounts.take(2)) {
       final album = albumData['album'] as AssetPathEntity;
       final totalCount = albumData['count'] as int;
-      final loadCount = (totalCount * 0.1).ceil().clamp(1, 50);
+      final loadCount = (totalCount * 0.15).ceil().clamp(1, 100);
       
       final videos = await album.getAssetListPaged(page: 0, size: loadCount);
       
@@ -641,7 +641,7 @@ class GalleryService {
           // Video thumbnail'i hızlı yükleme için küçük boyut
           Uint8List? thumb;
           try {
-            thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(400, 400));
+            thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(300, 300));
           } catch (e) {
             thumb = Uint8List(0);
           }

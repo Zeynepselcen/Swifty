@@ -1636,7 +1636,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final appLoc = AppLocalizations.of(context)!;
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
-        future: _isVideoMode ? GalleryService.loadVideos(limit: 300) : GalleryService.loadPhotos(limit: 300), // Lazy loading ile hızlı yükleme
+        future: _isVideoMode ? GalleryService.loadVideos(limit: 500) : GalleryService.loadPhotos(limit: 500), // Optimize edilmiş lazy loading
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -1715,7 +1715,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             _photosByMonth = groupedPhotos;
     
     return ListView.builder(
-              physics: const FastScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               itemCount: groupedPhotos.length,
       itemBuilder: (context, idx) {
                 final monthKey = groupedPhotos.keys.elementAt(idx);
