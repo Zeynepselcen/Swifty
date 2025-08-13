@@ -459,11 +459,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeDescription => 'Change appearance';
 
   @override
-  String get aboutTakeTour =>
-      'Take a tour to learn more about the app features';
+  String get aboutTakeTour => 'Start the tour to learn app features in detail';
 
   @override
-  String get aboutTakeTourButton => 'Start Tour';
+  String get aboutTakeTourButton => 'Features Tour';
 
   @override
   String get videoGallery => 'Video Gallery';

@@ -66,7 +66,7 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A183D),
+      backgroundColor: Colors.white,
       body: Center(
         child: _isVideoInitialized && _videoPlayerController != null
             ? AspectRatio(

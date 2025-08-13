@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'gallery_album_list_screen.dart';
 import 'recently_deleted_screen.dart';
+import 'onboarding_screen.dart';
 import '../widgets/debounced_button.dart';
 import '../theme/app_colors.dart'; // Renk teması import'u
 
@@ -9,6 +10,9 @@ import 'dart:convert';
 import '../l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
 
 class MainScreen extends StatefulWidget {
   final void Function(Locale)? onLocaleChanged;
@@ -25,6 +29,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Locale _currentLocale = const Locale('tr');
   int _deletedFilesCount = 0;
 
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +42,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
     
     _loadDeletedFilesCount();
+    _checkFirstTime();
   }
 
   @override
@@ -97,6 +103,34 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       });
     }
   }
+
+    Future<void> _checkFirstTime() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+      final lastVersion = prefs.getString('lastAppVersion');
+
+      // Sadece yeni versiyon yüklendiyse turu başlat
+      if (lastVersion == null || lastVersion != currentVersion) {
+        // Yeni versiyon kaydet
+        await prefs.setString('lastAppVersion', currentVersion);
+
+        // Kısa bir gecikme ile turu başlat
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      print('İlk defa kontrolü sırasında hata: $e');
+    }
+  }
+
+
 
   void _handleLocaleChange(Locale newLocale) {
     setState(() {
@@ -228,13 +262,33 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 Container(
                   width: double.infinity,
                   margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  decoration: BoxDecoration(
+                    gradient: widget.isDarkTheme
+                        ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.darkAccent,
+                              AppColors.darkAccentLight,
+                            ],
+                          )
+                        : AppColors.mainGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.isDarkTheme
+                            ? Colors.black.withOpacity(0.3)
+                            : AppColors.cardShadow,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: widget.isDarkTheme 
-                          ? AppColors.darkAccent.withOpacity(0.2)
-                          : AppColors.gradientStart,
+                      backgroundColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -242,9 +296,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     child: Text(
                       appLoc.cancel,
                       style: TextStyle(
-                        color: widget.isDarkTheme 
-                            ? AppColors.darkAccent
-                            : Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.3,
@@ -264,7 +316,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     } else if (selected == 'theme') {
       widget.onThemeChanged?.call();
     } else if (selected == 'about') {
-      _showAboutDialog();
+      // Direkt turu başlat
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
     }
   }
 
@@ -399,7 +454,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop(); // Close dialog
-                    // OnboardingScreen silindi, sadece dialog'u kapat
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -795,6 +852,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
             ),
           ),
+
           // Sağ üst köşeye ayarlar ikonu
           Positioned(
             top: 32,
@@ -812,7 +870,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ],
               ),
               child: IconButton(
-                icon: Icon(Icons.settings, color: AppColors.primary, size: 24),
+                icon: Icon(
+                  Icons.settings, 
+                  color: widget.isDarkTheme ? AppColors.darkAccent : AppColors.primary, 
+                  size: 24
+                ),
                 onPressed: _showSettingsDialog,
               ),
             ),

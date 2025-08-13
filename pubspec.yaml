@@ -29,6 +29,7 @@ dependencies:
   path: ^1.8.3
   url_launcher: ^6.2.5
   intl_utils: ^2.8.11
+  package_info_plus: ^8.0.2
 
 dev_dependencies:
   flutter_test:

@@ -13,25 +13,25 @@ class AppColors {
   static const Color gradientMiddle2 = Color.fromARGB(255, 187, 109, 201); // Orta mor
   static const Color gradientEnd = Color.fromARGB(255, 167, 136, 221); // Koyu mor
   
-  // Arka plan renkleri
+  // Arka plan renkleri - Açık tema mavi ağırlıklı
   static const Color backgroundPrimary = Color(0xFF0A183D);
   static const Color backgroundSecondary = Color(0xFF1B2A4D);
   static const Color backgroundTertiary = Color(0xFF233A5E);
   
-  // Koyu mod renkleri - Spotify tarzında, beyaz ağırlıklı
-  static const Color darkBackgroundPrimary = Color(0xFF121212); // Ana koyu arka plan
-  static const Color darkBackgroundSecondary = Color(0xFF181818); // İkincil koyu arka plan
-  static const Color darkBackgroundTertiary = Color(0xFF282828); // Üçüncül koyu arka plan
-  static const Color darkCardBackground = Color(0xFF282828); // Kart arka planı
-  static const Color darkButtonBackground = Color(0xFF3E3E3E); // Buton arka planı
-  static const Color darkBorderColor = Color(0xFF404040); // Border rengi
+  // Koyu mod renkleri - Siyah ve yeşil ağırlıklı
+  static const Color darkBackgroundPrimary = Color(0xFF000000); // Siyah arka plan
+  static const Color darkBackgroundSecondary = Color(0xFF0A0A0A); // Koyu gri
+  static const Color darkBackgroundTertiary = Color(0xFF1A1A1A); // Orta gri
+  static const Color darkCardBackground = Color(0xFF1A1A1A); // Kart arka planı
+  static const Color darkButtonBackground = Color(0xFF2A2A2A); // Buton arka planı
+  static const Color darkBorderColor = Color(0xFF333333); // Border rengi
   static const Color darkAccent = Color(0xFF1DB954); // Spotify yeşili
-  static const Color darkAccentLight = Color(0xFF1ED760); // Açık Spotify yeşili
+  static const Color darkAccentLight = Color(0xFF1ED760); // Spotify açık yeşili
   static const Color darkTextPrimary = Colors.white; // Ana metin rengi
-  static const Color darkTextSecondary = Color(0xFFB3B3B3); // İkincil metin rengi
-  static const Color darkTextTertiary = Color(0xFF727272); // Üçüncül metin rengi
+  static const Color darkTextSecondary = Color(0xFFCCCCCC); // İkincil metin rengi
+  static const Color darkTextTertiary = Color(0xFF999999); // Üçüncül metin rengi
   
-  // Metin renkleri
+  // Metin renkleri - Açık tema için beyaz renkler
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFFB0BEC5);
   static const Color textTertiary = Color(0xFF78909C);

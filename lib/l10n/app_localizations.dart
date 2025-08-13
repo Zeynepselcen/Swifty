@@ -927,13 +927,13 @@ abstract class AppLocalizations {
   /// No description provided for @aboutTakeTour.
   ///
   /// In en, this message translates to:
-  /// **'Take a tour to learn more about the app features'**
+  /// **'Start the tour to learn app features in detail'**
   String get aboutTakeTour;
 
   /// No description provided for @aboutTakeTourButton.
   ///
   /// In en, this message translates to:
-  /// **'Start Tour'**
+  /// **'Features Tour'**
   String get aboutTakeTourButton;
 
   /// No description provided for @videoGallery.

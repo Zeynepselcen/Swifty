@@ -460,10 +460,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aboutTakeTour =>
-      'Uygulama özelliklerini öğrenmek için turu başlatın';
+      'Uygulama özelliklerini detaylı olarak öğrenmek için turu başlatın';
 
   @override
-  String get aboutTakeTourButton => 'Turu Başlat';
+  String get aboutTakeTourButton => 'Özellikler Turu';
 
   @override
   String get videoGallery => 'Video Galerisi';
