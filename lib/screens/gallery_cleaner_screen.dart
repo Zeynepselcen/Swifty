@@ -1620,10 +1620,43 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               ),
               child: Text(AppLocalizations.of(context)!.deleteAndExit),
             ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop('exit'),
-                                                                child: Text(AppLocalizations.of(context)!.exitWithoutDeleting),
+          Container(
+            decoration: BoxDecoration(
+              gradient: Theme.of(context).brightness == Brightness.dark
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.darkAccent,
+                        AppColors.darkAccentLight,
+                      ],
+                    )
+                  : AppColors.mainGradient,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black.withOpacity(0.3)
+                      : AppColors.cardShadow,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop('exit'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: Text(AppLocalizations.of(context)!.exitWithoutDeleting),
+            ),
+          ),
           ],
         ),
     );

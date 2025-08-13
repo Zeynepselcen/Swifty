@@ -1458,7 +1458,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                         valueColor: AlwaysStoppedAnimation<Color>(
                           Theme.of(context).brightness == Brightness.dark
                               ? AppColors.darkAccent
-                              : AppColors.primary,
+                              : Color(0xFFFF6B9D), // Pembe
                         ),
                       ),
                     ),
@@ -1636,7 +1636,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final appLoc = AppLocalizations.of(context)!;
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
-        future: _isVideoMode ? GalleryService.loadVideos() : GalleryService.loadPhotos(), // Tüm fotoğrafları yükle - doğru sayılar için
+        future: _isVideoMode ? GalleryService.loadVideos(limit: 300) : GalleryService.loadPhotos(limit: 300), // Lazy loading ile hızlı yükleme
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -1667,7 +1667,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 Theme.of(context).brightness == Brightness.dark 
                                   ? AppColors.darkAccent
-                                  : AppColors.primary,
+                                  : Color(0xFFFF6B9D), // Pembe
                               ),
                             ),
                           ),
@@ -2126,16 +2126,11 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Ay için albüm sayısını hesapla
   int _getAlbumCountForMonth(String monthKey) {
-    // Tarih görünümünde o ayın gerçek fotoğraf sayısını göster
+    // Gerçek sayıları göster - o ayın gerçek fotoğraf sayısı
     if (_photosByMonth.containsKey(monthKey) && _photosByMonth[monthKey] != null) {
       return _photosByMonth[monthKey]!.length;
     }
-    // Eğer henüz yüklenmemişse veya veri yoksa, albüm toplamlarını göster
-    int totalCount = 0;
-    for (final album in _albums) {
-      totalCount += album.count;
-    }
-    return totalCount;
+    return 0;
   }
 
   List<_AlbumWithCount> get _sortedAlbums {
