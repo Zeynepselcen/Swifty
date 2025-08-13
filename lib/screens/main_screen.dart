@@ -451,6 +451,24 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xFFFF6B9D), // Pembe
+                      Color(0xFF8B5CF6), // Mor
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFFFF6B9D).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop(); // Close dialog
@@ -459,14 +477,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 4,
-                    shadowColor: Colors.blue.withOpacity(0.3),
+                    shadowColor: Color(0xFFFF6B9D).withOpacity(0.3),
                   ),
                   child: Text(
                     appLoc.aboutTakeTourButton,

@@ -88,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackgroundPrimary : AppColors.backgroundPrimary,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -101,7 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                     icon: Icon(
                       Icons.arrow_back,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      color: Color(0xFFFF6B9D),
                       size: 24,
                     ),
                   ),
@@ -109,7 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Text(
                     '${_currentPage + 1} / ${_pages.length}',
                     style: TextStyle(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      color: Color(0xFFFF6B9D),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -150,7 +150,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(
-                              color: isDark ? AppColors.darkAccent : AppColors.accent,
+                              color: Color(0xFFFF6B9D),
                               width: 1,
                             ),
                           ),
@@ -158,7 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: Text(
                           'Geri',
                           style: TextStyle(
-                            color: isDark ? AppColors.darkAccent : AppColors.accent,
+                            color: Color(0xFFFF6B9D),
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -174,14 +174,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: ElevatedButton(
                       onPressed: _nextPage,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? AppColors.darkAccent : AppColors.accent,
+                        backgroundColor: Color(0xFFFF6B9D),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 4,
-                        shadowColor: (isDark ? AppColors.darkAccent : AppColors.accent).withOpacity(0.3),
+                        shadowColor: Color(0xFFFF6B9D).withOpacity(0.3),
                       ),
                       child: Text(
                         _currentPage == _pages.length - 1 ? 'Başla' : 'İleri',
@@ -202,9 +202,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildPage(OnboardingPage page, bool isDark) {
-    // Tema rengini kullan
-    final themeColor = isDark ? AppColors.darkAccent : AppColors.accent;
-    final pageColor = page.color ?? themeColor;
+    // Pembe renk kullan
+    final pageColor = Color(0xFFFF6B9D);
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -236,7 +235,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             page.title,
             style: TextStyle(
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              color: Color(0xFFFF6B9D),
               fontSize: 28,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
@@ -250,7 +249,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             page.description,
             style: TextStyle(
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              color: Colors.grey[600],
               fontSize: 18,
               height: 1.5,
             ),
