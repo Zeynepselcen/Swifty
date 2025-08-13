@@ -869,9 +869,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 24),
                     
-                    // Ana başlık - eski font stili ile
+                    // Ana başlık - dil desteği ile
                     Text(
-                      'Galeri Temizliği',
+                      appLoc.appTitle,
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? AppColors.darkTextPrimary
@@ -884,9 +884,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 18),
                     
-                    // Alt başlık - eski font stili ile
+                    // Alt başlık - dil desteği ile
                     Text(
-                      'Fotoğraflarınızı kolayca yönetin!',
+                      appLoc.mainScreenSubtitle,
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? AppColors.darkTextSecondary
@@ -938,7 +938,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             size: 20
                           ),
                           label: Text(
-                            'Başla',
+                            appLoc.start,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1008,8 +1008,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           icon: Icon(Icons.delete_outline, color: AppColors.textPrimary, size: 20),
                           label: Text(
                             _deletedFilesCount > 0 
-                              ? 'Son Silinenler ($_deletedFilesCount)' 
-                              : 'Son Silinenler', 
+                              ? '${appLoc.recentlyDeleted} ($_deletedFilesCount)' 
+                              : appLoc.recentlyDeleted, 
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

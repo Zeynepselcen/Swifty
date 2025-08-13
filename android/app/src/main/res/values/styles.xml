@@ -2,13 +2,11 @@
 <resources>
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <!-- Show a splash screen on the activity. Automatically removed when
-             the Flutter engine draws its first frame -->
-        <item name="android:windowBackground">@drawable/splash_background</item>
-        <!-- Splash screen'in daha uzun görünmesi için -->
-        <item name="android:windowFullscreen">true</item>
+        <!-- Şeffaf arka plan - splash screen kaldırıldı -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFullscreen">false</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowDisablePreview">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">false</item>
     </style>

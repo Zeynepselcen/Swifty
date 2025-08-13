@@ -28,11 +28,7 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-            <!-- Splash screen'in güncelleme sırasında da çalışması için -->
-            <meta-data
-              android:name="io.flutter.embedding.android.SplashScreenDrawable"
-              android:resource="@drawable/splash_background"
-              />
+            <!-- Splash screen kaldırıldı - sadece video splash kullanılıyor -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

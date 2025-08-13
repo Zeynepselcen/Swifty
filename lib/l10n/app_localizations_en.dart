@@ -473,4 +473,108 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get swipeToDelete => 'Swipe to delete';
+
+  @override
+  String get deleteConfirmation => 'Delete Confirmation';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get allDeletedFilesCleared => 'All deleted files cleared';
+
+  @override
+  String get clearError => 'Clear error';
+
+  @override
+  String get fileRestoring => 'is being restored';
+
+  @override
+  String get fileRestoredToFolder => 'restored to folder';
+
+  @override
+  String get folderSuffix => '';
+
+  @override
+  String get fileRestoredToDcim => 'restored to DCIM';
+
+  @override
+  String get clearAll => 'Clear All';
+
+  @override
+  String get january => 'January';
+
+  @override
+  String get february => 'February';
+
+  @override
+  String get march => 'March';
+
+  @override
+  String get april => 'April';
+
+  @override
+  String get may => 'May';
+
+  @override
+  String get june => 'June';
+
+  @override
+  String get july => 'July';
+
+  @override
+  String get august => 'August';
+
+  @override
+  String get september => 'September';
+
+  @override
+  String get october => 'October';
+
+  @override
+  String get november => 'November';
+
+  @override
+  String get december => 'December';
+
+  @override
+  String filesMovedToRecentlyDeleted(Object count) {
+    return '$count files moved to \"Recently Deleted\" folder. You can restore them within 30 days.';
+  }
+
+  @override
+  String filesSuccessfullyDeleted(Object count) {
+    return '$count files successfully deleted';
+  }
+
+  @override
+  String markedForDeletion(Object count) {
+    return '$count files marked for deletion!';
+  }
+
+  @override
+  String notAllPhotosReviewed(Object type) {
+    return 'You haven\'t reviewed all $type yet.';
+  }
+
+  @override
+  String noPhotosFoundDescription(Object type) {
+    return 'Gallery access permission granted but no $type found.';
+  }
+
+  @override
+  String get pleaseWaitThisMayTakeTime =>
+      'Please wait, this process may take some time';
+
+  @override
+  String get remaining => 'REMAINING';
+
+  @override
+  String get spaceSaved => 'SPACE SAVED';
+
+  @override
+  String get deleteAllButton => 'Delete All';
+
+  @override
+  String get completed => 'Completed!';
 }

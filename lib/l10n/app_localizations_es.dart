@@ -478,4 +478,109 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get swipeToDelete => 'Deslizar para eliminar';
+
+  @override
+  String get deleteConfirmation => 'Confirmar Eliminación';
+
+  @override
+  String get delete => 'Eliminar';
+
+  @override
+  String get allDeletedFilesCleared =>
+      'Todos los archivos eliminados limpiados';
+
+  @override
+  String get clearError => 'Error de limpieza';
+
+  @override
+  String get fileRestoring => 'se está restaurando';
+
+  @override
+  String get fileRestoredToFolder => 'restaurado a la carpeta';
+
+  @override
+  String get folderSuffix => '';
+
+  @override
+  String get fileRestoredToDcim => 'restaurado a DCIM';
+
+  @override
+  String get clearAll => 'Limpiar Todo';
+
+  @override
+  String get january => 'Enero';
+
+  @override
+  String get february => 'Febrero';
+
+  @override
+  String get march => 'Marzo';
+
+  @override
+  String get april => 'Abril';
+
+  @override
+  String get may => 'Mayo';
+
+  @override
+  String get june => 'Junio';
+
+  @override
+  String get july => 'Julio';
+
+  @override
+  String get august => 'Agosto';
+
+  @override
+  String get september => 'Septiembre';
+
+  @override
+  String get october => 'Octubre';
+
+  @override
+  String get november => 'Noviembre';
+
+  @override
+  String get december => 'Diciembre';
+
+  @override
+  String filesMovedToRecentlyDeleted(Object count) {
+    return '$count archivos movidos a la carpeta \"Eliminados Recientemente\". Puedes restaurarlos dentro de 30 días.';
+  }
+
+  @override
+  String filesSuccessfullyDeleted(Object count) {
+    return '$count archivos eliminados exitosamente';
+  }
+
+  @override
+  String markedForDeletion(Object count) {
+    return '¡$count archivos marcados para eliminación!';
+  }
+
+  @override
+  String notAllPhotosReviewed(Object type) {
+    return 'Aún no has revisado todos los $type.';
+  }
+
+  @override
+  String noPhotosFoundDescription(Object type) {
+    return 'Se otorgó permiso de acceso a la galería pero no se encontraron $type.';
+  }
+
+  @override
+  String get pleaseWaitThisMayTakeTime =>
+      'Por favor espera, este proceso puede tomar algo de tiempo';
+
+  @override
+  String get remaining => 'RESTANTE';
+
+  @override
+  String get spaceSaved => 'ESPACIO AHORRADO';
+
+  @override
+  String get deleteAllButton => 'Eliminar Todo';
+
+  @override
+  String get completed => '¡Completado!';
 }

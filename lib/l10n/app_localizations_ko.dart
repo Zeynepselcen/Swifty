@@ -59,10 +59,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get languageChangedTo => '언어가 변경되었습니다:';
 
   @override
-  String get allVideosReviewed => '모든 비디오가 검토되었습니다';
+  String get allVideosReviewed => '모든 비디오 검토됨';
 
   @override
-  String get allPhotosReviewed => '모든 사진이 검토되었습니다';
+  String get allPhotosReviewed => '모든 사진 검토됨';
 
   @override
   String get searchPhotos => '사진 검색';
@@ -461,4 +461,107 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get swipeToDelete => '스와이프해서 삭제';
+
+  @override
+  String get deleteConfirmation => '삭제 확인';
+
+  @override
+  String get delete => '삭제';
+
+  @override
+  String get allDeletedFilesCleared => '모든 삭제된 파일이 정리되었습니다';
+
+  @override
+  String get clearError => '정리 오류';
+
+  @override
+  String get fileRestoring => '복원 중입니다';
+
+  @override
+  String get fileRestoredToFolder => '폴더로 복원됨';
+
+  @override
+  String get folderSuffix => '';
+
+  @override
+  String get fileRestoredToDcim => 'DCIM으로 복원됨';
+
+  @override
+  String get clearAll => '모두 정리';
+
+  @override
+  String get january => '1월';
+
+  @override
+  String get february => '2월';
+
+  @override
+  String get march => '3월';
+
+  @override
+  String get april => '4월';
+
+  @override
+  String get may => '5월';
+
+  @override
+  String get june => '6월';
+
+  @override
+  String get july => '7월';
+
+  @override
+  String get august => '8월';
+
+  @override
+  String get september => '9월';
+
+  @override
+  String get october => '10월';
+
+  @override
+  String get november => '11월';
+
+  @override
+  String get december => '12월';
+
+  @override
+  String filesMovedToRecentlyDeleted(Object count) {
+    return '$count개 파일이 \"최근 삭제됨\" 폴더로 이동되었습니다. 30일 동안 복원할 수 있습니다.';
+  }
+
+  @override
+  String filesSuccessfullyDeleted(Object count) {
+    return '$count개 파일이 성공적으로 삭제되었습니다';
+  }
+
+  @override
+  String markedForDeletion(Object count) {
+    return '$count개 파일이 삭제를 위해 표시되었습니다!';
+  }
+
+  @override
+  String notAllPhotosReviewed(Object type) {
+    return '아직 모든 $type을(를) 검토하지 않았습니다.';
+  }
+
+  @override
+  String noPhotosFoundDescription(Object type) {
+    return '갤러리 접근 권한이 허용되었지만 $type을(를) 찾을 수 없습니다.';
+  }
+
+  @override
+  String get pleaseWaitThisMayTakeTime => '잠시 기다려주세요, 이 과정은 시간이 걸릴 수 있습니다';
+
+  @override
+  String get remaining => '남음';
+
+  @override
+  String get spaceSaved => '절약된 공간';
+
+  @override
+  String get deleteAllButton => '모두 삭제';
+
+  @override
+  String get completed => '완료!';
 }

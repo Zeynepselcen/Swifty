@@ -7,6 +7,7 @@ import '../models/photo_item.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:typed_data'; // Uint8List için eklendi
+import '../l10n/app_localizations.dart';
 
 // --- Galeri İzin Kontrolü için eklenen kod kaldırıldı, utils klasörüne taşındı. ---
 
@@ -140,24 +141,24 @@ class GalleryService {
   }
 
   // Aylık gruplama için yardımcı fonksiyon
-  static String _getMonthYearString(DateTime date) {
+  static String _getMonthYearString(DateTime date, AppLocalizations appLoc) {
     final months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+      appLoc.january, appLoc.february, appLoc.march, appLoc.april, appLoc.may, appLoc.june,
+      appLoc.july, appLoc.august, appLoc.september, appLoc.october, appLoc.november, appLoc.december
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
 
   // Fotoğrafları aylara göre grupla
-  static Map<String, List<PhotoItem>> groupPhotosByMonth(List<PhotoItem> photos) {
+  static Map<String, List<PhotoItem>> groupPhotosByMonth(List<PhotoItem> photos, AppLocalizations appLoc) {
     final Map<String, List<PhotoItem>> grouped = {};
     final months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+      appLoc.january, appLoc.february, appLoc.march, appLoc.april, appLoc.may, appLoc.june,
+      appLoc.july, appLoc.august, appLoc.september, appLoc.october, appLoc.november, appLoc.december
     ];
     
     for (final photo in photos) {
-      final monthKey = _getMonthYearString(photo.date);
+      final monthKey = _getMonthYearString(photo.date, appLoc);
       if (!grouped.containsKey(monthKey)) {
         grouped[monthKey] = [];
       }
@@ -193,14 +194,14 @@ class GalleryService {
     return sortedMap;
   }
 
-  static Map<String, List<PhotoItem>> groupVideosByMonth(List<PhotoItem> videos) {
+  static Map<String, List<PhotoItem>> groupVideosByMonth(List<PhotoItem> videos, AppLocalizations appLoc) {
     final Map<String, List<PhotoItem>> grouped = {};
     final months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+      appLoc.january, appLoc.february, appLoc.march, appLoc.april, appLoc.may, appLoc.june,
+      appLoc.july, appLoc.august, appLoc.september, appLoc.october, appLoc.november, appLoc.december
     ];
     for (final video in videos) {
-      final monthKey = _getMonthYearString(video.date);
+      final monthKey = _getMonthYearString(video.date, appLoc);
       if (!grouped.containsKey(monthKey)) {
         grouped[monthKey] = [];
       }

@@ -504,15 +504,22 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final futures = <Future<_AlbumWithCount?>>[];
     
     for (final album in albums) {
+      // Recent klasörünü filtrele
+      if (album.name.toLowerCase() == 'recent' || 
+          album.name.toLowerCase() == 'son' ||
+          album.name.toLowerCase() == 'reciente') {
+        print('DEBUG: Recent klasörü filtrelendi: ${album.name}');
+        continue;
+      }
+      
       futures.add(() async {
         try {
         final count = await album.assetCountAsync;
           print('DEBUG: Albüm ${album.name} - ${count} ${_isVideoMode ? "video" : "fotoğraf"}');
           if (count == 0) return null; // Skip empty albums
         
-          // Sadece tarih bilgisini al, thumbnail'i sonra yükle
-        final latestDate = await _getLatestAssetDate(album);
-          return _AlbumWithCount(album: album, count: count, latestDate: latestDate);
+          // Performans için tarih hesaplamasını kaldır
+          return _AlbumWithCount(album: album, count: count, latestDate: null);
         } catch (e) {
           print('DEBUG: Albüm ${album.name} işleme hatası: $e');
           return null;
@@ -1122,7 +1129,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                 //   ),
                 // Photos/Videos toggle
                 Padding(
-                  padding: const EdgeInsets.only(top: 24, left: 0, right: 0, bottom: 0),
+                  padding: const EdgeInsets.only(top: 16, left: 0, right: 0, bottom: 0),
                   child: Center(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1150,14 +1157,16 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                     children: [
                       // DropdownButton yerine PopupMenuButton ile modern ve özel menü:
                       Flexible(
-                        flex: 3, // Daha fazla alan kaplasın
+                        flex: 4, // Daha fazla alan kaplasın
                         child: PopupMenuButton<AlbumSortType>(
                           onSelected: (AlbumSortType newValue) {
                             setState(() {
                               _sortType = newValue;
                             });
                           },
-                          color: const Color(0xFF1B2A4D), // Koyu arka plan
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkBackgroundSecondary
+                              : Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                           itemBuilder: (context) => [
                             PopupMenuItem(
@@ -1165,68 +1174,58 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                               child: Text(
                                 appLoc.size, 
                                 style: TextStyle(
-                                color: Colors.white,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextPrimary
+                                      : Colors.black87,
                                   fontWeight: _sortType == AlbumSortType.size ? FontWeight.w700 : FontWeight.w500,
-                                  fontSize: 16,
+                                  fontSize: 17,
                                   letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                            ),
-                            PopupMenuItem(
-                              value: AlbumSortType.date,
-                            child: Text(
-                                appLoc.date, 
-                              style: TextStyle(
-                                  color: Colors.white, 
-                                  fontWeight: _sortType == AlbumSortType.date ? FontWeight.w700 : FontWeight.w500,
-                                fontSize: 16,
-                                  letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
                             PopupMenuItem(
                               value: AlbumSortType.name,
                               child: Text(
                                 appLoc.name, 
                                 style: TextStyle(
-                                  color: Colors.white, 
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextPrimary
+                                      : Colors.black87,
                                   fontWeight: _sortType == AlbumSortType.name ? FontWeight.w700 : FontWeight.w500,
-                                  fontSize: 16,
+                                  fontSize: 17,
                                   letterSpacing: 0.5,
                                 ),
                               ),
                             ),
                           ],
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            decoration: BoxDecoration(
                               color: Theme.of(context).brightness == Brightness.dark
                                   ? AppColors.darkButtonBackground
                                   : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? AppColors.darkBorderColor
                                     : Colors.grey.withOpacity(0.3),
                                 width: 1,
                               ),
-                          ),
-                          child: Row(
+                            ),
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
-                            children: [
+                              children: [
                                 Flexible(
                                   child: Text(
                                     _sortType == AlbumSortType.size
                                         ? appLoc.size
-                                        : _sortType == AlbumSortType.date
-                                            ? appLoc.date
-                                            : appLoc.name,
-                                style: TextStyle(
+                                        : appLoc.name,
+                                    style: TextStyle(
                                       color: Theme.of(context).brightness == Brightness.dark
                                           ? AppColors.darkTextPrimary
                                           : Colors.black87,
                                       fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                      fontSize: 15,
                                       letterSpacing: 0.5,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -1238,12 +1237,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? AppColors.darkAccent
                                       : Colors.grey,
-                                size: 20,
-                              ),
-                            ],
+                                  size: 22,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
                       ),
                       const Spacer(), // Sağa itmek için boşluk
                       const SizedBox(width: 8),
@@ -1260,42 +1259,58 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.darkButtonBackground
-                                    : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                              decoration: BoxDecoration(
+                                color: _viewType == ViewType.folder
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkAccent.withOpacity(0.2)
+                                        : Colors.white)
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkButtonBackground
+                                        : Colors.white),
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? AppColors.darkBorderColor
-                                      : Colors.grey.withOpacity(0.3),
-                                  width: 1,
+                                  color: _viewType == ViewType.folder
+                                      ? (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkAccent
+                                          : Colors.grey.withOpacity(0.5))
+                                      : (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkBorderColor
+                                          : Colors.grey.withOpacity(0.3)),
+                                  width: _viewType == ViewType.folder ? 2 : 1,
                                 ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Icon(
-                              Icons.folder,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? AppColors.darkTextSecondary
-                                        : Colors.grey,
+                                    Icons.folder,
+                                    color: _viewType == ViewType.folder
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? AppColors.darkAccent
+                                            : AppColors.mainGradient.colors.first)
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? AppColors.darkAccent
+                                            : Colors.grey),
                                     size: 14,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     appLoc.folder,
-                              style: TextStyle(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? AppColors.darkTextPrimary
-                                          : Colors.black87,
-                                      fontWeight: FontWeight.w600,
+                                    style: TextStyle(
+                                      color: _viewType == ViewType.folder
+                                          ? (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkAccent
+                                              : Colors.black87)
+                                          : (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkTextPrimary
+                                              : Colors.black87),
+                                      fontWeight: _viewType == ViewType.folder ? FontWeight.w700 : FontWeight.w600,
                                       fontSize: 15,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
                           ),
                           const SizedBox(width: 6),
                           // Tarih görünümü butonu
@@ -1307,43 +1322,59 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? AppColors.darkButtonBackground
-                                    : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                              decoration: BoxDecoration(
+                                color: _viewType == ViewType.date
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkAccent.withOpacity(0.2)
+                                        : Colors.white)
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkButtonBackground
+                                        : Colors.white),
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? AppColors.darkBorderColor
-                                      : Colors.grey.withOpacity(0.3),
-                                  width: 1,
+                                  color: _viewType == ViewType.date
+                                      ? (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkAccent
+                                          : Colors.grey.withOpacity(0.5))
+                                      : (Theme.of(context).brightness == Brightness.dark
+                                          ? AppColors.darkBorderColor
+                                          : Colors.grey.withOpacity(0.3)),
+                                  width: _viewType == ViewType.date ? 2 : 1,
                                 ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   Icon(
-                              Icons.calendar_today,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? AppColors.darkAccent
-                                        : Colors.grey,
+                                    Icons.calendar_today,
+                                    color: _viewType == ViewType.date
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? AppColors.darkAccent
+                                            : AppColors.mainGradient.colors.first)
+                                        : (Theme.of(context).brightness == Brightness.dark
+                                            ? AppColors.darkAccent
+                                            : Colors.grey),
                                     size: 14,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     appLoc.date,
-                              style: TextStyle(
-                                      color: Theme.of(context).brightness == Brightness.dark
-                                          ? AppColors.darkTextPrimary
-                                          : Colors.black87,
-                                      fontWeight: FontWeight.w600,
+                                    style: TextStyle(
+                                      color: _viewType == ViewType.date
+                                          ? (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkAccent
+                                              : Colors.black87)
+                                          : (Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkTextPrimary
+                                              : Colors.black87),
+                                      fontWeight: _viewType == ViewType.date ? FontWeight.w700 : FontWeight.w600,
                                       fontSize: 15,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                              ),
-                        ),
-                      ),
+                          ),
                     ],
                   ),
                     ],
@@ -1528,6 +1559,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Aylık görünüm - Klasör formatında
   Widget _buildMonthlyView() {
+    final appLoc = AppLocalizations.of(context)!;
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
         future: _isVideoMode ? GalleryService.loadVideos() : GalleryService.loadPhotos(),
@@ -1579,7 +1611,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    _isVideoMode ? 'Videolar yükleniyor...' : 'Fotoğraflar yükleniyor...',
+                    _isVideoMode ? appLoc.loadingVideos : appLoc.loadingPhotos,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -1588,7 +1620,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Lütfen bekleyin, bu işlem biraz zaman alabilir',
+                    appLoc.pleaseWaitThisMayTakeTime,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 14,
@@ -1641,8 +1673,8 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           if (snapshot.hasData && snapshot.data!.isNotEmpty) {
             // Video/Fotoğrafları aylara göre grupla
             final groupedPhotos = _isVideoMode 
-                ? GalleryService.groupVideosByMonth(snapshot.data!)
-                : GalleryService.groupPhotosByMonth(snapshot.data!);
+                ? GalleryService.groupVideosByMonth(snapshot.data!, appLoc)
+                : GalleryService.groupPhotosByMonth(snapshot.data!, appLoc);
             _photosByMonth = groupedPhotos;
     
     return ListView.builder(
@@ -1670,7 +1702,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             ],
           ),
           child: ListTile(
-                    leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
+                    leading: null, // Thumbnail'leri kaldır - performans için
                     title: Text(
                       monthKey,
                       style: TextStyle(
@@ -1682,7 +1714,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
                       ),
                     ),
                     subtitle: Text(
-                      '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
+                      '${photos.length} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? AppColors.darkTextSecondary
@@ -1723,7 +1755,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
           
           return Center(
             child: Text(
-              'Fotoğraf bulunamadı',
+              appLoc?.noPhotosFound ?? 'No photos found',
               style: TextStyle(color: Colors.grey),
             ),
           );
@@ -1757,7 +1789,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
             ],
           ),
           child: ListTile(
-            leading: _isVideoMode ? null : _buildMonthThumbnail(photos),
+            leading: null, // Thumbnail'leri kaldır - performans için
             title: Text(
               monthKey,
               style: TextStyle(
@@ -1769,7 +1801,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               ),
             ),
             subtitle: Text(
-              '${photos.length} ${_isVideoMode ? "video" : "fotoğraf"}',
+              '${photos.length} ${_isVideoMode ? appLoc.videos : appLoc.photos}',
               style: TextStyle(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? AppColors.darkTextSecondary
@@ -1954,12 +1986,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       return Future.value(null);
     }
     
-    // Yeni thumbnail yükle
+    // Yeni thumbnail yükle - daha küçük boyut kullan
     _loadingThumbnails.add(album.id);
     
     final future = album.getAssetListPaged(page: 0, size: 1)
         .then((assets) => assets.isNotEmpty 
-            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(400, 400)) 
+            ? assets.first.thumbnailDataWithSize(const ThumbnailSize(200, 200)) // 400x400'den 200x200'ye düşürüldü
             : null)
         .whenComplete(() => _loadingThumbnails.remove(album.id));
     

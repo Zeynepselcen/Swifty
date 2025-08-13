@@ -953,6 +953,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Swipe to delete'**
   String get swipeToDelete;
+
+  /// No description provided for @deleteConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Confirmation'**
+  String get deleteConfirmation;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @allDeletedFilesCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All deleted files cleared'**
+  String get allDeletedFilesCleared;
+
+  /// No description provided for @clearError.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear error'**
+  String get clearError;
+
+  /// No description provided for @fileRestoring.
+  ///
+  /// In en, this message translates to:
+  /// **'is being restored'**
+  String get fileRestoring;
+
+  /// No description provided for @fileRestoredToFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'restored to folder'**
+  String get fileRestoredToFolder;
+
+  /// No description provided for @folderSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **''**
+  String get folderSuffix;
+
+  /// No description provided for @fileRestoredToDcim.
+  ///
+  /// In en, this message translates to:
+  /// **'restored to DCIM'**
+  String get fileRestoredToDcim;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All'**
+  String get clearAll;
+
+  /// No description provided for @january.
+  ///
+  /// In en, this message translates to:
+  /// **'January'**
+  String get january;
+
+  /// No description provided for @february.
+  ///
+  /// In en, this message translates to:
+  /// **'February'**
+  String get february;
+
+  /// No description provided for @march.
+  ///
+  /// In en, this message translates to:
+  /// **'March'**
+  String get march;
+
+  /// No description provided for @april.
+  ///
+  /// In en, this message translates to:
+  /// **'April'**
+  String get april;
+
+  /// No description provided for @may.
+  ///
+  /// In en, this message translates to:
+  /// **'May'**
+  String get may;
+
+  /// No description provided for @june.
+  ///
+  /// In en, this message translates to:
+  /// **'June'**
+  String get june;
+
+  /// No description provided for @july.
+  ///
+  /// In en, this message translates to:
+  /// **'July'**
+  String get july;
+
+  /// No description provided for @august.
+  ///
+  /// In en, this message translates to:
+  /// **'August'**
+  String get august;
+
+  /// No description provided for @september.
+  ///
+  /// In en, this message translates to:
+  /// **'September'**
+  String get september;
+
+  /// No description provided for @october.
+  ///
+  /// In en, this message translates to:
+  /// **'October'**
+  String get october;
+
+  /// No description provided for @november.
+  ///
+  /// In en, this message translates to:
+  /// **'November'**
+  String get november;
+
+  /// No description provided for @december.
+  ///
+  /// In en, this message translates to:
+  /// **'December'**
+  String get december;
+
+  /// No description provided for @filesMovedToRecentlyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files moved to \"Recently Deleted\" folder. You can restore them within 30 days.'**
+  String filesMovedToRecentlyDeleted(Object count);
+
+  /// No description provided for @filesSuccessfullyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files successfully deleted'**
+  String filesSuccessfullyDeleted(Object count);
+
+  /// No description provided for @markedForDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files marked for deletion!'**
+  String markedForDeletion(Object count);
+
+  /// No description provided for @notAllPhotosReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t reviewed all {type} yet.'**
+  String notAllPhotosReviewed(Object type);
+
+  /// No description provided for @noPhotosFoundDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery access permission granted but no {type} found.'**
+  String noPhotosFoundDescription(Object type);
+
+  /// No description provided for @pleaseWaitThisMayTakeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait, this process may take some time'**
+  String get pleaseWaitThisMayTakeTime;
+
+  /// No description provided for @remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'REMAINING'**
+  String get remaining;
+
+  /// No description provided for @spaceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'SPACE SAVED'**
+  String get spaceSaved;
+
+  /// No description provided for @deleteAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All'**
+  String get deleteAllButton;
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed!'**
+  String get completed;
 }
 
 class _AppLocalizationsDelegate

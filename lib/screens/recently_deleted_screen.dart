@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
 
 class RecentlyDeletedScreen extends StatefulWidget {
   const RecentlyDeletedScreen({super.key});
@@ -33,6 +34,83 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       print('MediaStore yenilendi: $filePath');
     } catch (e) {
       print('MediaStore yenileme hatası: $e');
+    }
+  }
+
+  // Tüm silinen dosyaları temizle
+  Future<void> _clearAllDeletedFiles() async {
+    final appLoc = AppLocalizations.of(context)!;
+    try {
+      // Onay dialog'u göster
+      final shouldClear = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(appLoc.clearAll),
+          content: Text('Are you sure you want to permanently delete all deleted files? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(AppLocalizations.of(context)!.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(appLoc.clearAll),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldClear == true) {
+        // JSON dosyasını temizle
+        final appDir = await getApplicationDocumentsDirectory();
+        final deletedFilesPath = '${appDir.path}/deleted_files.json';
+        final deletedFilesFile = File(deletedFilesPath);
+        
+        if (await deletedFilesFile.exists()) {
+          await deletedFilesFile.delete();
+        }
+
+        // Trash klasörünü temizle
+        final swiftyTrashDir = Directory('${appDir.path}/swifty_trash');
+        if (await swiftyTrashDir.exists()) {
+          await swiftyTrashDir.delete(recursive: true);
+        }
+
+        // UI'yi güncelle
+        setState(() {
+          deletedFiles.clear();
+        });
+
+        // Başarı mesajı göster
+        if (mounted) {
+          final appLoc = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(appLoc.allDeletedFilesCleared),
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkAccent
+                  : Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Temizleme hatası: $e');
+      if (mounted) {
+        final appLoc = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${appLoc.clearError}: $e'),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.red[700]
+                : Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -89,6 +167,7 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       final originalFolderPath = fileInfo['originalFolderPath'] as String?;
 
       // Loading göster
+      final appLoc = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -101,13 +180,15 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  '${fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName} geri alınıyor...',
+                  '${fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName} ${appLoc.fileRestoring}',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          backgroundColor: Colors.blue,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkAccent
+              : AppColors.mainGradient.colors.first,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -161,10 +242,10 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
         if (originalFolderPath != null && originalFolderPath.isNotEmpty) {
           final folderName = path.basename(originalFolderPath);
           final shortFileName = fileName.length > 15 ? fileName.substring(0, 15) + '...' : fileName;
-          message = '$shortFileName geri alındı ($folderName klasörüne)';
+          message = '$shortFileName ${appLoc.fileRestoredToFolder}$folderName${appLoc.folderSuffix}';
         } else {
           final shortFileName = fileName.length > 15 ? fileName.substring(0, 15) + '...' : fileName;
-          message = '$shortFileName geri alındı (DCIM/Restored klasörüne)';
+          message = '$shortFileName ${appLoc.fileRestoredToDcim}';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -173,7 +254,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
               message,
               overflow: TextOverflow.ellipsis,
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkAccent
+                : Colors.green,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -183,17 +266,22 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dosya bulunamadı: $fileName'),
-            backgroundColor: Colors.red,
+            content: Text('${appLoc.fileNotFound}: $fileName'),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.red[700]
+                : Colors.red,
           ),
         );
       }
     } catch (e) {
       print('Dosya geri alma hatası: $e');
+      final appLoc = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Geri alma hatası: $e'),
-          backgroundColor: Colors.red,
+          content: Text('${appLoc.restoreError}: $e'),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.red[700]
+              : Colors.red,
         ),
       );
     }
@@ -266,12 +354,16 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     final appLoc = AppLocalizations.of(context)!;
     
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.darkBackgroundPrimary
+          : Colors.white,
       appBar: AppBar(
         title: Text(appLoc.recentlyDeletedTitle),
         backgroundColor: Theme.of(context).brightness == Brightness.dark 
-            ? const Color(0xFF1B2A4D) 
+            ? AppColors.darkBackgroundSecondary
             : const Color(0xFFB24592),
         foregroundColor: Colors.white,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -289,23 +381,30 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                       Icon(
                         Icons.delete_outline,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey[400],
                       ),
                       const SizedBox(height: 16),
                       Text(
                         AppLocalizations.of(context)!.recentlyDeletedFilesNotFound,
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : Colors.grey[600],
                         ),
                       ),
                     ],
                   ),
                 )
-              : ListView.separated(
-                  itemCount: deletedFiles.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: deletedFiles.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
                     final file = deletedFiles[index];
                     final fileName = file['fileName'] as String;
                     final deletedAt = file['deletedAt'] as int;
@@ -314,6 +413,9 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
 
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardBackground
+                          : Colors.white,
                       child: ListTile(
                         leading: FutureBuilder<File?>(
                           future: File(trashPath).exists().then((exists) => exists ? File(trashPath) : null),
@@ -356,12 +458,24 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                         ),
                         title: Text(
                           fileName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextPrimary
+                                : Colors.black,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${AppLocalizations.of(context)!.deletedAt}: ${_formatDate(deletedAt)}'),
+                            Text(
+                              '${AppLocalizations.of(context)!.deletedAt}: ${_formatDate(deletedAt)}',
+                              style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey[600],
+                              ),
+                            ),
                             Text(
                               _getTimeRemaining(expiresAt),
                               style: TextStyle(
@@ -413,7 +527,57 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                       ),
                     );
                   },
-                ),
+                        ),
+                      ),
+                      // Temizleme butonu
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: Theme.of(context).brightness == Brightness.dark
+                              ? const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.darkAccent,
+                                    AppColors.darkAccentLight,
+                                  ],
+                                )
+                              : AppColors.mainGradient,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.black.withOpacity(0.3)
+                                  : AppColors.cardShadow,
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: deletedFiles.isNotEmpty ? _clearAllDeletedFiles : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          icon: const Icon(Icons.delete_forever, size: 24),
+                          label: Text(
+                            appLoc.deleteAllButton,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
     );
   }
 } 

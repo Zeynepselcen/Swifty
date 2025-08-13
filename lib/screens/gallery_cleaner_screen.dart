@@ -220,7 +220,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       builder: (context) => AlertDialog(
         title: Text(appLoc?.noAlbumsFound ?? 'Galeri Boş'),
-        content: Text(appLoc?.noAlbumsFound ?? 'Galeriye erişim izni verildi ancak hiç ${widget.isVideoMode ? 'video' : 'fotoğraf'} bulunamadı.'),
+        content: Text(appLoc?.noAlbumsFoundDescription ?? 'Gallery access permission granted but no ${widget.isVideoMode ? 'video' : 'photo'} found.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -343,11 +343,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Silme Onayı'),
+        title: Text(AppLocalizations.of(context)!.deleteConfirmation),
         content: Text(
-          '${toDelete.length} ${widget.isVideoMode ? 'video' : 'fotoğraf'} silinecek.\n'
-          'Toplam boyut: $formattedSize\n\n'
-          'Bu işlem geri alınamaz. Devam etmek istiyor musunuz?'
+          '${toDelete.length} ${widget.isVideoMode ? (appLoc?.videos ?? 'videos') : (appLoc?.photos ?? 'photos')} will be deleted.\n'
+          'Total size: $formattedSize\n\n'
+          'This action cannot be undone. Do you want to continue?'
         ),
         actions: [
           TextButton(
@@ -357,7 +357,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             style: TextButton.styleFrom(
               foregroundColor: AppColors.darkAccent,
             ),
-            child: Text(appLoc?.cancel ?? 'İptal'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -366,7 +366,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             style: TextButton.styleFrom(
               foregroundColor: AppColors.darkAccent,
             ),
-            child: const Text('Sil'),
+            child: Text(AppLocalizations.of(context)!.delete),
           ),
         ],
       ),
@@ -621,7 +621,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       
       if (!await deletedFilesFile.exists()) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Geri alınacak dosya bulunamadı')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.recentlyDeletedFilesNotFound)),
         );
         return;
       }
@@ -629,7 +629,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       final content = await deletedFilesFile.readAsString();
       if (content.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Geri alınacak dosya bulunamadı')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.recentlyDeletedFilesNotFound)),
         );
         return;
       }
@@ -691,18 +691,22 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Geri alınacak dosya bulunamadı'),
-            backgroundColor: Colors.orange,
-          ),
+                  SnackBar(
+          content: Text(AppLocalizations.of(context)!.recentlyDeletedFilesNotFound),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.orange[700]
+              : Colors.orange,
+        ),
         );
       }
     } catch (e) {
       print('Geri alma hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Geri alma hatası: $e'),
-          backgroundColor: Colors.red,
+          content: Text('${AppLocalizations.of(context)!.restoreError}: $e'),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.red[700]
+              : Colors.red,
         ),
       );
     }
@@ -749,10 +753,10 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         ),
                       ),
                       SizedBox(height: 8),
-                      Text(
-                        'Video yükleniyor...',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
-            ),
+                                              Text(
+                          "Loading videos...",
+                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                        ),
           ],
         ),
                 ),
@@ -1012,7 +1016,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${photos.length - currentIndex} KALAN',
+                            '${photos.length - currentIndex} ${appLoc?.remaining ?? 'REMAINING'}',
                             style: TextStyle(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? AppColors.darkTextPrimary
@@ -1039,7 +1043,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                         ),
                       ),
                       child: Text(
-                        '${_formatBytes(_getTotalDeletedSize())} KAZANILAN',
+                        '${_formatBytes(_getTotalDeletedSize())} ${appLoc?.spaceSaved ?? 'SPACE SAVED'}',
                         style: TextStyle(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? AppColors.darkTextPrimary
@@ -1104,8 +1108,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
               size: 80,
             ),
             const SizedBox(height: 20),
-            const Text(
-                                        'Bitti!',
+            Text(
+                                        appLoc?.completed ?? 'Completed!',
               style: TextStyle(
                                           color: Colors.black,
                                           fontSize: 28,
@@ -1115,8 +1119,8 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
             const SizedBox(height: 10),
             Text(
                                         widget.isVideoMode
-                                          ? 'Tüm videolar incelendi'
-                                          : 'Tüm fotoğraflar incelendi',
+                                          ? (appLoc?.allVideosReviewed ?? 'All videos reviewed')
+                                          : appLoc?.allPhotosReviewed ?? 'All photos reviewed',
               style: const TextStyle(
                                           color: Colors.black87,
                 fontSize: 18,
@@ -1131,7 +1135,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                               context: context,
                                               builder: (context) => AlertDialog(
                                                 title: const Text('Son Silinenler'),
-                                                content: Text('${toDelete.length} fotoğraf/video "Son Silinenler" klasörüne taşınacak. 30 gün boyunca geri alabilirsiniz.'),
+                                                content: Text(appLoc?.filesMovedToRecentlyDeleted(toDelete.length) ?? '${toDelete.length} files will be moved to "Recently Deleted" folder. You can restore them within 30 days.'),
                                                 actions: [
                                                   TextButton(
                                                     onPressed: () => Navigator.of(context).pop(false),
@@ -1163,7 +1167,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                   if (mounted) {
                                                     ScaffoldMessenger.of(context).showSnackBar(
                                                       SnackBar(
-                                                        content: Text('$deletedCount fotoğraf/video başarıyla silindi'),
+                                                        content: Text(appLoc?.filesSuccessfullyDeleted(deletedCount) ?? '$deletedCount files successfully deleted'),
                                                         backgroundColor: Colors.green,
                                                       ),
                                                     );
@@ -1284,14 +1288,14 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                               color: Colors.black12,
                                                               borderRadius: BorderRadius.circular(12),
                                                             ),
-        child: const Center(
+        child: Center(
                                                             child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                 children: [
               CircularProgressIndicator(color: Colors.white),
               SizedBox(height: 8),
               Text(
-                'Video yükleniyor...',
+                appLoc?.videoLoading ?? 'Video loading...',
                 style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],
@@ -1457,9 +1461,9 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                                                       ),
                                                       borderRadius: BorderRadius.circular(30),
                                                     ),
-                                                    child: const Text(
-                                                      'Atla',
-                                                              style: TextStyle(
+                                                    child: Text(
+                                                      AppLocalizations.of(context)!.skip,
+                                                              style: const TextStyle(
                                                                 color: Colors.white,
                                                         fontSize: 22,
                                                         fontWeight: FontWeight.bold,
@@ -1526,7 +1530,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
       context: context,
       barrierDismissible: false,
         builder: (context) => AlertDialog(
-        title: const Text('Çıkış Onayı'),
+        title: Text(AppLocalizations.of(context)!.exitConfirmation),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1550,7 +1554,7 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '$selectedCount ${widget.isVideoMode ? 'video' : 'fotoğraf'} silmek için işaretlendi!',
+                        appLoc?.markedForDeletion(selectedCount) ?? '$selectedCount ${widget.isVideoMode ? 'video' : 'photo'} marked for deletion!',
                         style: const TextStyle(
                           color: Colors.orange,
                           fontWeight: FontWeight.bold,
@@ -1575,11 +1579,11 @@ class _GalleryCleanerScreenState extends State<GalleryCleanerScreen> with Widget
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Sil ve Çık'),
+              child: Text(AppLocalizations.of(context)!.deleteAndExit),
             ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop('exit'),
-            child: const Text('Silmeden Çık'),
+                                                                child: Text(AppLocalizations.of(context)!.exitWithoutDeleting),
             ),
           ],
         ),

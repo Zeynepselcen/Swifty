@@ -473,4 +473,108 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get swipeToDelete => 'Silmek için kaydır';
+
+  @override
+  String get deleteConfirmation => 'Silme Onayı';
+
+  @override
+  String get delete => 'Sil';
+
+  @override
+  String get allDeletedFilesCleared => 'Tüm silinen dosyalar temizlendi';
+
+  @override
+  String get clearError => 'Temizleme hatası';
+
+  @override
+  String get fileRestoring => 'geri alınıyor';
+
+  @override
+  String get fileRestoredToFolder => 'klasörüne geri alındı';
+
+  @override
+  String get folderSuffix => '';
+
+  @override
+  String get fileRestoredToDcim => 'DCIM\'e geri alındı';
+
+  @override
+  String get clearAll => 'Tümünü Temizle';
+
+  @override
+  String get january => 'Ocak';
+
+  @override
+  String get february => 'Şubat';
+
+  @override
+  String get march => 'Mart';
+
+  @override
+  String get april => 'Nisan';
+
+  @override
+  String get may => 'Mayıs';
+
+  @override
+  String get june => 'Haziran';
+
+  @override
+  String get july => 'Temmuz';
+
+  @override
+  String get august => 'Ağustos';
+
+  @override
+  String get september => 'Eylül';
+
+  @override
+  String get october => 'Ekim';
+
+  @override
+  String get november => 'Kasım';
+
+  @override
+  String get december => 'Aralık';
+
+  @override
+  String filesMovedToRecentlyDeleted(Object count) {
+    return '$count dosya \"Son Silinenler\" klasörüne taşındı. 30 gün boyunca geri alabilirsiniz.';
+  }
+
+  @override
+  String filesSuccessfullyDeleted(Object count) {
+    return '$count dosya başarıyla silindi';
+  }
+
+  @override
+  String markedForDeletion(Object count) {
+    return '$count dosya silmek için işaretlendi!';
+  }
+
+  @override
+  String notAllPhotosReviewed(Object type) {
+    return 'Henüz tüm $type gözden geçirmediniz.';
+  }
+
+  @override
+  String noPhotosFoundDescription(Object type) {
+    return 'Galeriye erişim izni verildi ancak hiç $type bulunamadı.';
+  }
+
+  @override
+  String get pleaseWaitThisMayTakeTime =>
+      'Lütfen bekleyin, bu işlem biraz zaman alabilir';
+
+  @override
+  String get remaining => 'KALAN';
+
+  @override
+  String get spaceSaved => 'KAZANILAN';
+
+  @override
+  String get deleteAllButton => 'Tümünü Sil';
+
+  @override
+  String get completed => 'Bitti!';
 }
