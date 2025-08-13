@@ -698,7 +698,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       _loadingPhotos = true;
       _isPhotoLoading = true;
       _photoLoadingProgress = 0.0;
-      _photoLoadingLabel = 'Fotoğraflar yükleniyor...';
+      _photoLoadingLabel = _isVideoMode ? 'Videolar yükleniyor...' : 'Fotoğraflar yükleniyor...';
     });
     
     try {
@@ -1425,6 +1425,73 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   // Klasör görünümü
   Widget _buildFolderView() {
     final appLoc = AppLocalizations.of(context)!;
+    
+    // Yükleme durumunda göster
+    if (_isLoadingAlbums) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              child: Stack(
+                children: [
+                  // Arka plan daire
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.1),
+                    ),
+                  ),
+                  // Progress circle
+                  Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 8,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkAccent
+                              : AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Albüm yükleniyor...',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextPrimary
+                    : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isVideoMode ? 'Videolar hazırlanıyor' : 'Fotoğraflar hazırlanıyor',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
     return ListView.builder(
       physics: const FastScrollPhysics(),
       itemCount: _sortedAlbums.length,
@@ -1569,7 +1636,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     final appLoc = AppLocalizations.of(context)!;
     if (_photosByMonth.isEmpty) {
       return FutureBuilder<List<PhotoItem>>(
-        future: _isVideoMode ? GalleryService.loadVideos(limit: 200) : GalleryService.loadPhotos(limit: 200), // Lazy loading - sadece 200 fotoğraf
+        future: _isVideoMode ? GalleryService.loadVideos(limit: 200) : GalleryService.loadPhotos(limit: 200), // Lazy loading - performans için
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -2059,12 +2126,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
   // Ay için albüm sayısını hesapla
   int _getAlbumCountForMonth(String monthKey) {
-    // Albüm sayılarını topla (tarih görünümünde de aynı sayıları göster)
+    // Tarih görünümünde albüm toplamlarını göster (klasör görünümü ile tutarlı)
     int totalCount = 0;
     for (final album in _albums) {
       totalCount += album.count;
     }
-    return totalCount > 0 ? totalCount : 1; // En az 1 göster
+    return totalCount;
   }
 
   List<_AlbumWithCount> get _sortedAlbums {
