@@ -696,7 +696,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   Future<void> _openAlbumDirectly(AssetPathEntity album) async {
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
-
+    final appLoc = AppLocalizations.of(context)!;
+    
+    // Loading ekranını göster
+    setState(() {
+      _isFolderLoading = true;
+      _folderLoadingMessage = appLoc.loadingFolder(album.name);
+    });
     
     // Loading state başlat
     setState(() {
@@ -750,6 +756,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         SnackBar(content: Text(appLoc?.noAlbumsFound ?? 'Klasör açılırken hata oluştu: $e')),
       );
     } finally {
+      // Loading ekranını gizle
+      setState(() {
+        _isFolderLoading = false;
+        _folderLoadingMessage = '';
+      });
+      
       // Loading state bitir
       setState(() {
         _loadingPhotos = false;
