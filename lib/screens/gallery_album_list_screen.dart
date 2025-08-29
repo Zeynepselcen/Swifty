@@ -694,6 +694,21 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
 
 
   Future<void> _openAlbumDirectly(AssetPathEntity album) async {
+    // Eğer zaten bir klasör açılıyorsa, yeni tıklamayı engelle
+    if (_isOpeningAlbum) {
+      print('DEBUG: Zaten bir klasör açılıyor, yeni tıklama engellendi');
+      final appLoc = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lütfen bekleyin, klasör açılıyor...'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    _isOpeningAlbum = true;
     print('DEBUG: _openAlbumDirectly başladı - Video modu: $_isVideoMode, Albüm: ${album.name}');
     
     final appLoc = AppLocalizations.of(context)!;
@@ -756,6 +771,9 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
         SnackBar(content: Text(appLoc?.noAlbumsFound ?? 'Klasör açılırken hata oluştu: $e')),
       );
     } finally {
+      // Flag'i sıfırla
+      _isOpeningAlbum = false;
+      
       // Loading ekranını gizle
       setState(() {
         _isFolderLoading = false;
@@ -2192,6 +2210,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   }
 
   bool _isAlbumOpening = false;
+  bool _isOpeningAlbum = false; // Yeni flag ekledik
 
   void _onAlbumTap(_AlbumWithCount album) async {
     if (_isAlbumOpening) return;
