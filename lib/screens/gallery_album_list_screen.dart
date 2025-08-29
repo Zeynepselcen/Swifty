@@ -697,14 +697,6 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     // Eğer zaten bir klasör açılıyorsa, yeni tıklamayı engelle
     if (_isOpeningAlbum) {
       print('DEBUG: Zaten bir klasör açılıyor, yeni tıklama engellendi');
-      final appLoc = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lütfen bekleyin, klasör açılıyor...'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
-      );
       return;
     }
     
@@ -716,7 +708,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     // Loading ekranını göster
     setState(() {
       _isFolderLoading = true;
-      _folderLoadingMessage = appLoc.loadingFolder(album.name);
+      _folderLoadingMessage = appLoc.loadingFolder;
     });
     
     // Loading state başlat

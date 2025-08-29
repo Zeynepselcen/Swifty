@@ -175,5 +175,5 @@
   "deleteAllButton": "모두 삭제",
   "completed": "완료!",
   "allVideosReviewed": "모든 비디오 검토됨",
-  "loadingFolder": "{folderName} 로딩 중..."
+  "loadingFolder": "Loading..."
 } 

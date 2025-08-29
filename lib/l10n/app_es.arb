@@ -178,5 +178,5 @@
   "deleteAllButton": "Eliminar Todo",
   "completed": "¡Completado!",
   "allVideosReviewed": "Todos los videos revisados",
-  "loadingFolder": "{folderName} cargando..."
+  "loadingFolder": "Loading..."
 } 

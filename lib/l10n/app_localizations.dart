@@ -1143,8 +1143,8 @@ abstract class AppLocalizations {
   /// No description provided for @loadingFolder.
   ///
   /// In en, this message translates to:
-  /// **'{folderName} loading...'**
-  String loadingFolder(Object folderName);
+  /// **'Loading...'**
+  String get loadingFolder;
 }
 
 class _AppLocalizationsDelegate
