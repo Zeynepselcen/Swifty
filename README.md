@@ -5,7 +5,12 @@ Swifty, fotoğraf ve videolarınızı kolayca yönetmenizi, düzenlemenizi ve te
 ## 🚀 Özellikler
 
 - **Akıllı Galeri Yönetimi**: Fotoğraf ve videolarınızı albümler halinde organize edin
-- **Duplicate Fotoğraf Bulma**: Aynı fotoğrafları otomatik olarak tespit edin
+- **Gelişmiş Duplicate Tespiti**: Tüm depolama alanında aynı fotoğrafları otomatik olarak tespit edin
+- **Sistem Geneli Dosya Yönetimi**: Farklı klasörlerdeki medya dosyalarını tek yerden yönetin
+- **Harici Depolama Desteği**: SD kart ve USB cihazlarındaki fotoğraflara erişim
+- **Hash Tabanlı Analiz**: Gelişmiş duplicate detection algoritması
+- **Toplu İşlemler**: Birden fazla klasördeki dosyaları aynı anda işleyin
+- **Depolama Analizi**: Detaylı depolama alanı raporları
 - **Kolay Silme**: Swipe hareketi ile fotoğrafları kolayca silin
 - **Çoklu Dil Desteği**: Türkçe, İngilizce, İspanyolca ve Korece
 - **Modern UI/UX**: Kullanıcı dostu ve modern arayüz
