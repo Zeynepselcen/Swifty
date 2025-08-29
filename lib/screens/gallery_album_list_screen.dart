@@ -2213,7 +2213,7 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     // Loading ekranını göster
     setState(() {
       _isFolderLoading = true;
-      _folderLoadingMessage = appLoc.loadingFolder(album.album.name);
+      _folderLoadingMessage = appLoc.loadingFolder;
     });
     
     try {

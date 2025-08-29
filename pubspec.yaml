@@ -4,7 +4,7 @@ description: Swifty - Akıllı Galeri Temizleyici. Fotoğraf ve videolarınızı
 
 publish_to: 'none'
 
-version: 1.3.24+82
+version: 1.3.25+83
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
