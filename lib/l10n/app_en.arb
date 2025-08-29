@@ -181,5 +181,6 @@
   "spaceSaved": "SPACE SAVED",
   "deleteAllButton": "Delete All",
   "completed": "Completed!",
-  "allVideosReviewed": "All videos reviewed"
+  "allVideosReviewed": "All videos reviewed",
+  "loadingFolder": "{folderName} loading..."
 } 

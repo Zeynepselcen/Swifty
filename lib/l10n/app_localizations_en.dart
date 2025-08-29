@@ -576,4 +576,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get completed => 'Completed!';
+
+  @override
+  String loadingFolder(Object folderName) {
+    return '$folderName loading...';
+  }
 }

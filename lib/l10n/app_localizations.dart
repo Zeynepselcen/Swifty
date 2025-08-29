@@ -1139,6 +1139,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Completed!'**
   String get completed;
+
+  /// No description provided for @loadingFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'{folderName} loading...'**
+  String loadingFolder(Object folderName);
 }
 
 class _AppLocalizationsDelegate

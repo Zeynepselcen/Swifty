@@ -177,5 +177,6 @@
   "spaceSaved": "ESPACIO AHORRADO",
   "deleteAllButton": "Eliminar Todo",
   "completed": "¡Completado!",
-  "allVideosReviewed": "Todos los videos revisados"
+  "allVideosReviewed": "Todos los videos revisados",
+  "loadingFolder": "{folderName} cargando..."
 } 

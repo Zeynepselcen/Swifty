@@ -564,4 +564,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get completed => '완료!';
+
+  @override
+  String loadingFolder(Object folderName) {
+    return '$folderName 로딩 중...';
+  }
 }

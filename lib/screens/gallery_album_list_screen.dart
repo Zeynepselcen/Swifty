@@ -2185,10 +2185,12 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
     if (_isAlbumOpening) return;
     _isAlbumOpening = true;
     
+    final appLoc = AppLocalizations.of(context)!;
+    
     // Loading ekranını göster
     setState(() {
       _isFolderLoading = true;
-      _folderLoadingMessage = '${album.album.name} yükleniyor...';
+      _folderLoadingMessage = appLoc.loadingFolder(album.album.name);
     });
     
     try {

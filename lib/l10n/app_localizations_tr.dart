@@ -577,4 +577,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get completed => 'Bitti!';
+
+  @override
+  String loadingFolder(Object folderName) {
+    return '$folderName yükleniyor...';
+  }
 }

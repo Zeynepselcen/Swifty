@@ -98,6 +98,7 @@
   "filesRestoredSuccessfully": "Dosyalar başarıyla geri alındı",
   "exitConfirmation": "Çıkış Onayı",
   "exitWithoutReviewing": "Tüm {label} incelemeden çıkmak üzeresiniz. Kalan: {remaining} {label}. Geri dönerseniz baştan başlamanız gerekecek. Çıkmak istiyor musunuz?",
+  "loadingFolder": "{folderName} yükleniyor...",
   "deleteAndExit": "Sil ve Çık",
   "exitWithoutDeleting": "Silmeden Çık",
   "filesMovedToTrash": "{count} dosya \"Son Silinenler\" klasörüne taşındı. 30 gün boyunca \"Son Silinenler\" ekranından geri alabilirsiniz.",
