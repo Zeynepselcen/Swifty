@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../theme/app_colors.dart'; // AppColors import
+import '../widgets/loading_widget.dart'; // LoadingWidget import
 
 
 import 'package:flutter/foundation.dart';
@@ -71,6 +72,10 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   double _photoLoadingProgress = 0.0;
   String _photoLoadingLabel = '';
   bool _isPhotoLoading = false;
+  
+  // Klasör yükleme durumu
+  bool _isFolderLoading = false;
+  String _folderLoadingMessage = '';
 
   // Arama ile ilgili - TAMAMEN KALDIRILDI
   // final TextEditingController _searchController = TextEditingController();
@@ -1417,6 +1422,17 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
               ],
             ),
           ),
+          // Loading overlay
+          if (_isFolderLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: LoadingWidget(
+                  message: _folderLoadingMessage,
+                  size: 80,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -2168,6 +2184,13 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
   void _onAlbumTap(_AlbumWithCount album) async {
     if (_isAlbumOpening) return;
     _isAlbumOpening = true;
+    
+    // Loading ekranını göster
+    setState(() {
+      _isFolderLoading = true;
+      _folderLoadingMessage = '${album.album.name} yükleniyor...';
+    });
+    
     try {
       await Navigator.push(
         context,
@@ -2185,6 +2208,11 @@ class _GalleryAlbumListScreenState extends State<GalleryAlbumListScreen> with Wi
       );
     } finally {
       _isAlbumOpening = false;
+      // Loading ekranını gizle
+      setState(() {
+        _isFolderLoading = false;
+        _folderLoadingMessage = '';
+      });
     }
   }
 } // _GalleryAlbumListScreenState'in kapanışı
